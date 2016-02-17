@@ -4,6 +4,13 @@
 #define SRC(a,b) p_src[(b)*src_width+(a)]
 #define DST(a,b) p_dst[(b)*dst_width+(a)]
 
+#define SRC_0(a,b) p_src[((b)*src_width+(a))*cn]
+#define DST_0(a,b) p_dst[((b)*dst_width+(a))*cn]
+#define SRC_1(a,b) p_src[((b)*src_width+(a))*cn+1]
+#define DST_1(a,b) p_dst[((b)*dst_width+(a))*cn+1]
+#define SRC_2(a,b) p_src[((b)*src_width+(a))*cn+2]
+#define DST_2(a,b) p_dst[((b)*dst_width+(a))*cn+2]
+
 int imgLinearEquation(float *data,float *answer,int num);
 
 void imgPerspective(ImgMat *src,ImgPoint *vertex,ImgMat *dst)
@@ -65,42 +72,90 @@ void imgPerspective(ImgMat *src,ImgPoint *vertex,ImgMat *dst)
 	float wx,wy;
 	float w1,w2,w3,w4;
 	float u_1,u_2,v_1,v_2;
+	
+	int cn;
+	cn = ((src->type&0xF8)>>3)+1;
 
 	int i,j;
-	for(j=0;j<dst_height;j++)
-	{
-		u_1 = (answer[1]*(float)j+x[0]);
-		u_2 = (answer[5]*(float)j+1.0);
-		v_1 = (answer[3]*(float)j+y[0]);
-		v_2 = (answer[5]*(float)j+1.0);
-		
-		for(i=0;i<dst_width;i++)
-		{
-			// u= (answer[0]*(float)i+answer[1]*(float)j+x[0])/(answer[4]*(float)i+answer[5]*(float)j+1.0);
-			// v= (answer[2]*(float)i+answer[3]*(float)j+y[0])/(answer[4]*(float)i+answer[5]*(float)j+1.0);
-			
-			u = u_1/u_2;
-			v = v_1/v_2;
 	
-			x1 = (int)u;
-			x2 = x1+1;
-			y1 = (int)v;
-			y2 = y1+1;
+	if(cn == 1)
+	{
+		for(j=0;j<dst_height;j++)
+		{
+			u_1 = (answer[1]*(float)j+x[0]);
+			u_2 = (answer[5]*(float)j+1.0);
+			v_1 = (answer[3]*(float)j+y[0]);
+			v_2 = (answer[5]*(float)j+1.0);
 			
-			wx = u-(float)x1;
-			wy = v-(float)y1;				
+			for(i=0;i<dst_width;i++)
+			{
+				// u= (answer[0]*(float)i+answer[1]*(float)j+x[0])/(answer[4]*(float)i+answer[5]*(float)j+1.0);
+				// v= (answer[2]*(float)i+answer[3]*(float)j+y[0])/(answer[4]*(float)i+answer[5]*(float)j+1.0);
+				
+				u = u_1/u_2;
+				v = v_1/v_2;
+		
+				x1 = (int)u;
+				x2 = x1+1;
+				y1 = (int)v;
+				y2 = y1+1;
+				
+				wx = u-(float)x1;
+				wy = v-(float)y1;				
+				
+				w1 = (1-wx)*(1-wy);
+				w2 = wx*(1-wy);
+				w3 = wx*wy;
+				w4 = (1-wx)*wy;
+				
+				DST(i,j) =(int)((float)SRC(x1,y1)*w1+(float)SRC(x2,y1)*w2+(float)SRC(x2,y2)*w3+(float)SRC(x1,y2)*w4);
+				
+				u_1 = u_1+answer[0];
+				u_2 = u_2+answer[4];
+				v_1 = v_1+answer[2];
+				v_2 = v_2+answer[4];
+			}
+		}
+	}
+	else if(cn == 3)
+	{
+		for(j=0;j<dst_height;j++)
+		{
+			u_1 = (answer[1]*(float)j+x[0]);
+			u_2 = (answer[5]*(float)j+1.0);
+			v_1 = (answer[3]*(float)j+y[0]);
+			v_2 = (answer[5]*(float)j+1.0);
 			
-			w1 = (1-wx)*(1-wy);
-			w2 = wx*(1-wy);
-			w3 = wx*wy;
-			w4 = (1-wx)*wy;
-			
-			DST(i,j) =(int)((float)SRC(x1,y1)*w1+(float)SRC(x2,y1)*w2+(float)SRC(x2,y2)*w3+(float)SRC(x1,y2)*w4);
-			
-			u_1 = u_1+answer[0];
-			u_2 = u_2+answer[4];
-			v_1 = v_1+answer[2];
-			v_2 = v_2+answer[4];
+			for(i=0;i<dst_width;i++)
+			{
+				// u= (answer[0]*(float)i+answer[1]*(float)j+x[0])/(answer[4]*(float)i+answer[5]*(float)j+1.0);
+				// v= (answer[2]*(float)i+answer[3]*(float)j+y[0])/(answer[4]*(float)i+answer[5]*(float)j+1.0);
+				
+				u = u_1/u_2;
+				v = v_1/v_2;
+		
+				x1 = (int)u;
+				x2 = x1+1;
+				y1 = (int)v;
+				y2 = y1+1;
+				
+				wx = u-(float)x1;
+				wy = v-(float)y1;				
+				
+				w1 = (1-wx)*(1-wy);
+				w2 = wx*(1-wy);
+				w3 = wx*wy;
+				w4 = (1-wx)*wy;
+				
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
+				DST_1(i,j) =(int)((float)SRC_1(x1,y1)*w1+(float)SRC_1(x2,y1)*w2+(float)SRC_1(x2,y2)*w3+(float)SRC_1(x1,y2)*w4);
+				DST_2(i,j) =(int)((float)SRC_2(x1,y1)*w1+(float)SRC_2(x2,y1)*w2+(float)SRC_2(x2,y2)*w3+(float)SRC_2(x1,y2)*w4);
+				
+				u_1 = u_1+answer[0];
+				u_2 = u_2+answer[4];
+				v_1 = v_1+answer[2];
+				v_2 = v_2+answer[4];
+			}
 		}
 	}
 }
