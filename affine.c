@@ -3,6 +3,12 @@
 
 #define SRC(a,b) p_src[(b)*src_width+(a)]
 #define DST(a,b) p_dst[(b)*dst_width+(a)]
+#define SRC_0(a,b) p_src[(b)*src_width*cn+(a)*cn]
+#define DST_0(a,b) p_dst[(b)*dst_width*cn+(a)*cn]
+#define SRC_1(a,b) p_src[(b)*src_width*cn+(a)*cn+1]
+#define DST_1(a,b) p_dst[(b)*dst_width*cn+(a)*cn+1]
+#define SRC_2(a,b) p_src[(b)*src_width*cn+(a)*cn+2]
+#define DST_2(a,b) p_dst[(b)*dst_width*cn+(a)*cn+2]
 
 int imgLinearEquation(float *data,float *answer,int num);			
 				
@@ -58,41 +64,90 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	float wx,wy;
 	float w1,w2,w3,w4;
 	
+	int cn;
+	cn = ((src->type&0xF8)>>3)+1;
+	
 	int i,j;
-	for(j=0;j<dst_height;j++)
+	
+	if(cn == 1)
 	{
-		x = (float)j*k2+b1;
-		y = (float)j*k4+b2;
-		
-		for(i=0;i<dst_width;i++)
+		for(j=0;j<dst_height;j++)
 		{
-			if((x>src_width)||(x<0)||(y>src_height)||(y<0))
+			x = (float)j*k2+b1;
+			y = (float)j*k4+b2;
+			
+			for(i=0;i<dst_width;i++)
 			{
-				DST(i,j) = 0;
+				if((x>src_width)||(x<0)||(y>src_height)||(y<0))
+				{
+					DST(i,j) = 0;
+					
+					x = x+k1;
+					y = y+k3;
+					
+					continue;
+				}
+				
+				x1 = (int)x;
+				x2 = x1+1;
+				y1 = (int)y;
+				y2 = y1+1;
+				
+				wx = x-(float)x1;
+				wy = y-(float)y1;				
+				
+				w1 = (1-wx)*(1-wy);
+				w2 = wx*(1-wy);
+				w3 = wx*wy;
+				w4 = (1-wx)*wy;
+				
+				DST(i,j) =(int)((float)SRC(x1,y1)*w1+(float)SRC(x2,y1)*w2+(float)SRC(x2,y2)*w3+(float)SRC(x1,y2)*w4);
 				
 				x = x+k1;
 				y = y+k3;
-				
-				continue;
 			}
+		}
+	}
+	
+	else if(cn == 3)
+	{
+		for(j=0;j<dst_height;j++)
+		{
+			x = (float)j*k2+b1;
+			y = (float)j*k4+b2;
 			
-			x1 = (int)x;
-			x2 = x1+1;
-			y1 = (int)y;
-			y2 = y1+1;
-			
-			wx = x-(float)x1;
-			wy = y-(float)y1;				
-			
-			w1 = (1-wx)*(1-wy);
-			w2 = wx*(1-wy);
-			w3 = wx*wy;
-			w4 = (1-wx)*wy;
-			
-			DST(i,j) =(int)((float)SRC(x1,y1)*w1+(float)SRC(x2,y1)*w2+(float)SRC(x2,y2)*w3+(float)SRC(x1,y2)*w4);
-			
-			x = x+k1;
-			y = y+k3;
+			for(i=0;i<dst_width;i++)
+			{
+				if((x>src_width)||(x<0)||(y>src_height)||(y<0))
+				{
+					DST(i,j) = 0;
+					
+					x = x+k1;
+					y = y+k3;
+					
+					continue;
+				}
+				
+				x1 = (int)x;
+				x2 = x1+1;
+				y1 = (int)y;
+				y2 = y1+1;
+				
+				wx = x-(float)x1;
+				wy = y-(float)y1;				
+				
+				w1 = (1-wx)*(1-wy);
+				w2 = wx*(1-wy);
+				w3 = wx*wy;
+				w4 = (1-wx)*wy;
+				
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
+				DST_1(i,j) =(int)((float)SRC_1(x1,y1)*w1+(float)SRC_1(x2,y1)*w2+(float)SRC_1(x2,y2)*w3+(float)SRC_1(x1,y2)*w4);
+				DST_2(i,j) =(int)((float)SRC_2(x1,y1)*w1+(float)SRC_2(x2,y1)*w2+(float)SRC_2(x2,y2)*w3+(float)SRC_2(x1,y2)*w4);
+				
+				x = x+k1;
+				y = y+k3;
+			}
 		}
 	}	
 }
