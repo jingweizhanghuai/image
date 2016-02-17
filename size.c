@@ -4,6 +4,13 @@
 #define SRC(a,b) p_src[(b)*src_width+(a)]
 #define DST(a,b) p_dst[(b)*dst_width+(a)]
 
+#define SRC_0(a,b) p_src[((b)*src_width+(a))*cn]
+#define DST_0(a,b) p_dst[((b)*dst_width+(a))*cn]
+#define SRC_1(a,b) p_src[((b)*src_width+(a))*cn+1]
+#define DST_1(a,b) p_dst[((b)*dst_width+(a))*cn+1]
+#define SRC_2(a,b) p_src[((b)*src_width+(a))*cn+2]
+#define DST_2(a,b) p_dst[((b)*dst_width+(a))*cn+2]
+
 void imgResize(ImgMat *src,ImgMat *dst)
 {
 	int src_width;
@@ -34,28 +41,61 @@ void imgResize(ImgMat *src,ImgMat *dst)
 	float x,y;
 	float wx,wy;
 	
+	int cn;
+	cn = ((src->type&0xF8)>>3)+1;
+	
 	int i,j;	
-	for(j=0;j<dst_height;j++)
-		for(i=0;i<dst_width;i++)
-		{
-			x = ((float)i)*kx;
-			y = ((float)j)*ky;
-			
-			x1 = (int)x;
-			x2 = x1+1;
-			y1 = (int)y;
-			y2 = y1+1;
-			
-			wx = x-(float)x1;
-			wy = y-(float)y1;
-			
-			w1 = (1.0-wx)*(1.0-wy);
-			w2 = wx*(1.0-wy);
-			w3 = (1.0-wx)*wy;
-			w4 = wx*wy;
-			
-			DST(i,j) = SRC(x1,y1)*w1+SRC(x2,y1)*w2+SRC(x1,y2)*w3+SRC(x2,y2)*w4;
-		}
+	
+	if(cn == 1)
+	{
+		for(j=0;j<dst_height;j++)
+			for(i=0;i<dst_width;i++)
+			{
+				x = ((float)i)*kx;
+				y = ((float)j)*ky;
+				
+				x1 = (int)x;
+				x2 = x1+1;
+				y1 = (int)y;
+				y2 = y1+1;
+				
+				wx = x-(float)x1;
+				wy = y-(float)y1;
+				
+				w1 = (1.0-wx)*(1.0-wy);
+				w2 = wx*(1.0-wy);
+				w3 = (1.0-wx)*wy;
+				w4 = wx*wy;
+				
+				DST(i,j) = SRC(x1,y1)*w1+SRC(x2,y1)*w2+SRC(x1,y2)*w3+SRC(x2,y2)*w4;
+			}
+	}
+	else if(cn==3)
+	{
+		for(j=0;j<dst_height;j++)
+			for(i=0;i<dst_width;i++)
+			{
+				x = ((float)i)*kx;
+				y = ((float)j)*ky;
+				
+				x1 = (int)x;
+				x2 = x1+1;
+				y1 = (int)y;
+				y2 = y1+1;
+				
+				wx = x-(float)x1;
+				wy = y-(float)y1;
+				
+				w1 = (1.0-wx)*(1.0-wy);
+				w2 = wx*(1.0-wy);
+				w3 = (1.0-wx)*wy;
+				w4 = wx*wy;
+				
+				DST_0(i,j) = SRC_0(x1,y1)*w1+SRC_0(x2,y1)*w2+SRC_0(x1,y2)*w3+SRC_0(x2,y2)*w4;
+				DST_1(i,j) = SRC_1(x1,y1)*w1+SRC_1(x2,y1)*w2+SRC_1(x1,y2)*w3+SRC_1(x2,y2)*w4;
+				DST_2(i,j) = SRC_2(x1,y1)*w1+SRC_2(x2,y1)*w2+SRC_2(x1,y2)*w3+SRC_2(x2,y2)*w4;
+			}
+	}
 }
 /*
 ImgMat *imgCreateMat(int height,int width,char type);
