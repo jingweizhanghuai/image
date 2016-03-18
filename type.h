@@ -129,9 +129,47 @@ typedef struct ImgRect
 {
 	int x;
 	int y;
-	int width;
-	int height;
+	union
+	{
+		int rows;
+		int height;
+	};
+
+	union
+	{
+		int cols;
+		int width;
+	};
 }ImgRect;
+
+typedef struct ImgSize
+{
+	union
+	{
+		int rows;
+		int height;
+	};
+
+	union
+	{
+		int cols;
+		int width;
+	};
+}ImgSize;
+
+int mate_type;
+#define UP_LEFT_SCROP 1
+#define UP_RIGHT_SCROP 2
+#define DOWN_LEFT_SCROP 3
+#define DOWN_RIGHT_SCROP 4
+#define RESIZE 5
+#define UP_LEFT_CROP 6
+#define UP_RIGHT_CROP 7
+#define DOWN_LEFT_CROP 8
+#define DOWN_RIGHT_CROP 9
+
+#define imgMatSize(src,size) imgMateMat(src,size->height,dst->width,mate_type);						 
+#define imgMate(src,dst) imgMateMat(src,dst->height,dst->width,mate_type);
 
 typedef struct ImgRectList
 {
@@ -171,11 +209,23 @@ typedef struct ImgDPList
 	int pixel_frame[500];
 	int pixel_num;	
 	
-	ImgPoint dead_list[200];
+	ImgPoint dead_list[400];
 	int dead_num1;
 	int dead_num2;
 	
 	unsigned char replace_list[200];
 }ImgDPList;
+
+typedef struct ImgColorLUT
+{
+	int cn;
+	union
+	{
+		int r[256];
+		int p[256];
+	};
+	int g[256];
+	int b[256];
+}ImgColorLUT;
 
 

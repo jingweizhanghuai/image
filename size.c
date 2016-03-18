@@ -1,18 +1,49 @@
 #include <stdio.h>
 #include "type.h"
 
-#define SRC(a,b) p_src[(b)*src_width+(a)]
-#define DST(a,b) p_dst[(b)*dst_width+(a)]
+#define SRC_PTR {\
+	p_src = malloc((src->height)<<2);\
+	p_src[0] = src->data.ptr;\
+	for(i=1;i<src->height;i++)\
+		p_src[i] = p_src[i-1]+src->step;\
+}\
 
-#define SRC_0(a,b) p_src[((b)*src_width+(a))*cn]
-#define DST_0(a,b) p_dst[((b)*dst_width+(a))*cn]
-#define SRC_1(a,b) p_src[((b)*src_width+(a))*cn+1]
-#define DST_1(a,b) p_dst[((b)*dst_width+(a))*cn+1]
-#define SRC_2(a,b) p_src[((b)*src_width+(a))*cn+2]
-#define DST_2(a,b) p_dst[((b)*dst_width+(a))*cn+2]
+#define DST_PTR {\
+	p_dst = malloc((dst->height)<<2);\
+	p_dst[0] = dst->data.ptr;\
+	for(i=1;i<dst->height;i++)\
+		p_dst[i] = p_dst[i-1]+dst->step;\
+}\
 
-void imgResize(ImgMat *src,ImgMat *dst)
+#define SRC(x,y) *(p_src[y]+(x))
+#define DST(x,y) *(p_dst[y]+(x))
+
+#define SRC3_0(x,y) *(p_src[y]+(x)+(x)+(x))
+#define DST3_0(x,y) *(p_dst[y]+(x)+(x)+(x))
+#define SRC3_1(x,y) *(p_src[y]+(x)+(x)+(x)+1)
+#define DST3_1(x,y) *(p_dst[y]+(x)+(x)+(x)+1)
+#define SRC3_2(x,y) *(p_src[y]+(x)+(x)+(x)+2)
+#define DST3_2(x,y) *(p_dst[y]+(x)+(x)+(x)+2)
+
+#define SRC4_0(x,y) *(p_src[y]+(x)+(x)+(x)+(x))
+#define DST4_0(x,y) *(p_dst[y]+(x)+(x)+(x)+(x))
+#define SRC4_1(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+1)
+#define DST4_1(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+1)
+#define SRC4_2(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+2)
+#define DST4_2(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+2)
+#define SRC4_3(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+3)
+#define DST4_3(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+3)
+
+void imgResize(ImgMat *src,ImgMat *dst,int height,int width)
 {
+#ifdef DEBUG
+	if(dst==NULL)
+	{
+		printf("IMG Error:\n\tin imgResize:\n");
+		exit(0);
+	}
+#endif
+	
 	int src_width;
 	src_width = src->width;
 	
@@ -20,16 +51,27 @@ void imgResize(ImgMat *src,ImgMat *dst)
 	src_height = src->height;
 	
 	int dst_width;
-	dst_width = dst->width;
+	if(width!=0)	
+		dst_width = width;
+	else
+		dst_width = dst->width;
 	
 	int dst_height;
-	dst_height = dst->height;
+	if(height!=0)
+		dst_height = height;
+	else
+		dst_height = dst->height;
 	
-	unsigned char *p_src;
-	p_src = src->data.ptr;
+	if((dst_width != dst->width)||(dst_height != dst->height)||(dst->type != src->type))
+		imgMatRedefine(dst,dst_height,dst_width,src->type);
 	
-	unsigned char *p_dst;
-	p_dst = dst->data.ptr;
+	int i,j;	
+	
+	unsigned char **p_src;
+	SRC_PTR;
+	
+	unsigned char **p_dst;
+	DST_PTR;
 	
 	float kx,ky;
 	kx = (float)src_width/(float)dst_width;
@@ -43,9 +85,7 @@ void imgResize(ImgMat *src,ImgMat *dst)
 	
 	int cn;
 	cn = ((src->type&0xF8)>>3)+1;
-	
-	int i,j;	
-	
+
 	if(cn == 1)
 	{
 		for(j=0;j<dst_height;j++)
@@ -91,15 +131,66 @@ void imgResize(ImgMat *src,ImgMat *dst)
 				w3 = (1.0-wx)*wy;
 				w4 = wx*wy;
 				
-				DST_0(i,j) = SRC_0(x1,y1)*w1+SRC_0(x2,y1)*w2+SRC_0(x1,y2)*w3+SRC_0(x2,y2)*w4;
-				DST_1(i,j) = SRC_1(x1,y1)*w1+SRC_1(x2,y1)*w2+SRC_1(x1,y2)*w3+SRC_1(x2,y2)*w4;
-				DST_2(i,j) = SRC_2(x1,y1)*w1+SRC_2(x2,y1)*w2+SRC_2(x1,y2)*w3+SRC_2(x2,y2)*w4;
+				DST3_0(i,j) = SRC3_0(x1,y1)*w1+SRC3_0(x2,y1)*w2+SRC3_0(x1,y2)*w3+SRC3_0(x2,y2)*w4;
+				DST3_1(i,j) = SRC3_1(x1,y1)*w1+SRC3_1(x2,y1)*w2+SRC3_1(x1,y2)*w3+SRC3_1(x2,y2)*w4;
+				DST3_2(i,j) = SRC3_2(x1,y1)*w1+SRC3_2(x2,y1)*w2+SRC3_2(x1,y2)*w3+SRC3_2(x2,y2)*w4;
+			}
+	}
+	else if(cn==4)
+	{
+		for(j=0;j<dst_height;j++)
+			for(i=0;i<dst_width;i++)
+			{
+				x = ((float)i)*kx;
+				y = ((float)j)*ky;
+				
+				x1 = (int)x;
+				x2 = x1+1;
+				y1 = (int)y;
+				y2 = y1+1;
+				
+				wx = x-(float)x1;
+				wy = y-(float)y1;
+				
+				w1 = (1.0-wx)*(1.0-wy);
+				w2 = wx*(1.0-wy);
+				w3 = (1.0-wx)*wy;
+				w4 = wx*wy;
+				
+				DST4_0(i,j) = SRC4_0(x1,y1)*w1+SRC4_0(x2,y1)*w2+SRC4_0(x1,y2)*w3+SRC4_0(x2,y2)*w4;
+				DST4_1(i,j) = SRC4_1(x1,y1)*w1+SRC4_1(x2,y1)*w2+SRC4_1(x1,y2)*w3+SRC4_1(x2,y2)*w4;
+				DST4_2(i,j) = SRC4_2(x1,y1)*w1+SRC4_2(x2,y1)*w2+SRC4_2(x1,y2)*w3+SRC4_2(x2,y2)*w4;
+				DST4_2(i,j) = SRC4_2(x1,y1)*w1+SRC4_2(x2,y1)*w2+SRC4_2(x1,y2)*w3+SRC4_2(x2,y2)*w4;
 			}
 	}
 }
-/*
+
 ImgMat *imgCreateMat(int height,int width,char type);
 
+void Resize(ImgMat *src,ImgMat *dst,int height,int width)
+{
+#ifdef DEBUG
+	if(((height == 0)||(width ==0))&&(dst==NULL))
+	{
+		printf("IMG Error:\n\tin imgResize:\n");
+		exit(0);
+	}
+#endif
+	
+	if(dst==NULL)
+	{
+		dst = imgCreateMat(height,width,src->type);
+		imgResize(src,dst,height,width);
+		free(src->data.ptr);
+		free(src->hidinfo);
+		*src = *dst;
+		free(dst);
+	}
+	else
+		imgResize(src,dst,height,width);
+}
+
+/*		
 ImgMat *imgReshape(ImgMat *src,ImgPoint *vertex)
 {
 	int src_width;

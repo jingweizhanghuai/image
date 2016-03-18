@@ -118,7 +118,7 @@ void imgPrintMat(void *mat)
 	}
 }
 
-void imgCreateData(ImgMat *p)
+void imgCreateMatData(ImgMat *p)
 {
 	int n;
 	n=p->height*p->step;
@@ -131,7 +131,7 @@ void imgCreateData(ImgMat *p)
 #ifdef DEBUG
 	if(data ==NULL)
 	{
-		printf("MXU error:\n\tin imgCreateData:outof memery space!\n");
+		printf("MXU error:\n\tin imgCreateMatData:outof memery space!\n");
 		exit(0);
 	}
 #endif
@@ -242,11 +242,20 @@ ImgMat *imgCreateMatHeader(int height,int width,int type)
 	return image;
 }
 
+void imgMatRedefine(ImgMat *src,int height,int width,int type)
+{	
+	if((src->data.ptr!=NULL)&&(*(src->hidinfo + 1) == 1))
+		free(src->data.ptr);
+	
+	imgInitializeMatHeader(src,height,width,type);
+	imgCreateMatData(src);
+}
+
 void imgchangeMatHeader(ImgMat *src,int height,int width,int type)
 {
 	if((src->data.ptr != NULL)&&(*(src->hidinfo + 1) == 1))
 		free(src->data.ptr);
-		
+	
 	imgInitializeMatHeader(src,height,width,type);
 }
 	
@@ -255,7 +264,7 @@ ImgMat *imgCreateMat(int height,int width,char type)
 {
 	ImgMat *image;
 	image=imgCreateMatHeader(height,width,type);	
-	imgCreateData(image);
+	imgCreateMatData(image);
 
 	return image;
 }
@@ -301,44 +310,6 @@ void imgReleaseMat(ImgMat *src)
 	return;
 }
 
-ImgMat *imgCopyMat(ImgMat *src)
-{
-	int img_width;
-	img_width = src->width;
-
-	int img_height;
-	img_height = src->height;
-
-	int type;
-	type = src->type;
-
-	ImgMat *dst;
-	dst = imgCreateMat(img_height,img_width,type);
-
-	int n;
-	n = (src->step)*img_height/4;
-
-	int *p_src;
-	p_src = src->data.i;
-
-	int *p_dst;
-	p_dst = dst->data.i;
-
-	int i;
-	for(i=0;i<n;i++)
-	{
-		*p_dst=*p_src;
-		p_src = p_src+1;
-		p_dst = p_dst+1;
-	}
-
-	return dst;
-}
-
-
-	
-
-
 int imgMatCheck(ImgMat *src)
 {
 	int flag;
@@ -377,6 +348,142 @@ int imgMatCheck(ImgMat *src)
 	else
 		return 1;
 }
+
+void imgCrop(ImgMat *src,ImgMat *dst,ImgRect *rect);
+void imgResize(ImgMat *src,ImgMat *dst,int height,int width);
+
+void imgMateMat(ImgMat *src,int size_height,int size_width,int type)
+{	
+	if(((src->width)==(size_width))&&((src->height)==(size_height)))
+		return;
+	
+	ImgMat *dst;
+	dst = imgCreateMat(size_height,size_width,src->type);
+	
+	if(type<5)
+	{
+		int k1,k2,k;
+		k1 = (float)(size_width)/(float)(src->width);
+		k2 = (float)(size_height)/(float)(src->height);
+		
+		k = (k1>k2)?k1:k2;
+		
+		ImgSize resize;
+		resize.width = (int)((float)(src->width)*k+0.5);
+		resize.height = (int)((float)(src->height)*k+0.5);
+			
+		ImgMat *rsz;
+		rsz = imgCreateMat(resize.height,resize.width,src->type);
+			
+		imgResize(src,rsz,0,0);
+			
+		if(k1 == k2)
+		{
+			free(src->data.ptr);
+			free(src->hidinfo);
+			*src = *rsz;
+			free(rsz);
+			
+			return;
+		}
+		
+		ImgRect rect;
+		rect.width = size_width;
+		rect.height = size_height;
+		
+		if(type == UP_LEFT_SCROP)
+		{
+			rect.x = 0;
+			rect.y = 0;
+		}
+		else if(type == UP_RIGHT_SCROP)
+		{
+			rect.x = rsz->width - rect.width;
+			rect.y = 0;
+		}
+		else if(type == DOWN_LEFT_SCROP)
+		{
+			rect.x = 0;
+			rect.y = rsz->height - rect.height;
+		}
+		else if(type == DOWN_RIGHT_SCROP)
+		{
+			rect.x = rsz->width - rect.width;
+			rect.y = rsz->height - rect.height;
+		}
+						
+		imgCrop(rsz,dst,&rect);
+		imgReleaseMat(rsz);				
+	}
+	else if(type == RESIZE)
+		imgResize(src,dst,0,0);
+	else if(type>5)
+	{
+		ImgRect rect;
+		rect.width = size_width;
+		rect.height = size_height;
+		
+		if(type == UP_LEFT_CROP)
+		{
+			rect.x = 0;
+			rect.y = 0;
+		}
+		else if(type == UP_RIGHT_CROP)
+		{
+			rect.x = src->width - rect.width;
+			rect.y = 0;
+		}
+		else if(type == DOWN_LEFT_CROP)
+		{
+			rect.x = 0;
+			rect.y = src->height - rect.height;
+		}
+		else if(type == DOWN_RIGHT_CROP)
+		{
+			rect.x = src->width - rect.width;
+			rect.y = src->height - rect.height;
+		}		
+			
+		imgCrop(src,dst,&rect);
+	}
+	
+	free(src->data.ptr);
+	free(src->hidinfo);
+	*src = *dst;
+	free(dst);		
+}
+
+
+
+#define imgCopyMatHeader(src) imgCreateMatHeader(src->height,src->width,src->type)
+
+void imgCopyMat(ImgMat *src,ImgMat *dst)
+{
+	imgMate(src,dst);
+
+	int n;
+	n = (src->step)*(src->height)/4;
+
+	int *p_src;
+	p_src = src->data.i;
+
+	int *p_dst;
+	p_dst = dst->data.i;
+
+	int i;
+	for(i=0;i<n;i++)
+	{
+		*p_dst=*p_src;
+		p_src = p_src+1;
+		p_dst = p_dst+1;
+	}
+}
+
+
+	
+
+
+
 
 void imgCleanMat(ImgMat *src)
 {
@@ -504,7 +611,7 @@ int imgSaveGrayBMP(ImgMat *src,char *filename)
 #ifdef DEBUG
 	if(src->type != TYPE_8UC1)
 	{
-		printf("QY Error:\n\tin imgSaveGrayBMP: Wrong src format\n");
+		printf("IMG Error:\n\tin imgSaveGrayBMP: Wrong src format\n");
 		return 1;
 	}
 #endif
@@ -512,13 +619,12 @@ int imgSaveGrayBMP(ImgMat *src,char *filename)
 	FILE *f;
 	f = fopen(filename,"wb");
 
-#ifdef DEBUG
+
 	if(f == NULL)
 	{
-		printf("QY Error:\n\tin imgSaveGrayBMP: save image error\n");
+		printf("IMG Error:\n\tin imgSaveGrayBMP: save image error\n");
 		return 1;
 	}
-#endif
 		
 	int img_width;
 	img_width = *(src->hidinfo + 5);
@@ -537,7 +643,7 @@ int imgSaveGrayBMP(ImgMat *src,char *filename)
 		
 	fseek(f,0,SEEK_SET);
 	fwrite(&bmptype,1,2,f);
-
+// printf("%s\n",filename);
 	struct bmpheader my_bmp;
 	
 	my_bmp.bmpsize = 1078 + img_size;
@@ -554,6 +660,8 @@ int imgSaveGrayBMP(ImgMat *src,char *filename)
 	my_bmp.imgypelspermeter = 11811;
 	my_bmp.imgclrused = 0;
 	my_bmp.imgclrimportant = 0;
+	
+	
 	
 	// fseek(f,2,SEEK_SET);
 	fwrite(&my_bmp,1,52,f);
@@ -744,7 +852,7 @@ int imgReadBMP(const char *filename,ImgMat *dst)
 	if((dst->data.ptr != NULL))
 		free(dst->data.ptr);
 	
-	imgCreateData(dst);
+	imgCreateMatData(dst);
 		
 	int mat_width;
 	mat_width = dst->width;

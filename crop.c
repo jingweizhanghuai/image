@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "type.h"
+#include "err.h"
 
 #define SRC(x,y,c) p_src[(y)*img_width*cn + (x)*cn+c]
 #define DST(x,y,c) p_dst[(y)*dst_width*cn + (x)*cn+c]
@@ -7,8 +8,18 @@
 ImgMat *imgCreateMat(int height,int width,char type);
 void imgReleaseMatData(ImgMat *src);
 
-void imgCrop(ImgMat *src,ImgPoint point1,ImgPoint point2)
+void imgCrop(ImgMat *src,ImgMat *dst,ImgRect *rect)//Point point1,ImgPoint point2)
 {
+	#ifdef DEBUG
+	SOURCE_ERROR_CHECK(imgColorInvert,src);
+	DESTINATION_ERROR_CHECK(imgColorInvert,dst);
+	if((rect->width ==0)||(rect->height ==0))
+	{
+		printf("IMG Error\n\tin imgCrop:size of crop is wrong.\n");
+		exit(0);
+	}
+	#endif
+	
 	int img_width;
 	img_width = src->width;
 	
@@ -20,42 +31,19 @@ void imgCrop(ImgMat *src,ImgPoint point1,ImgPoint point2)
 	
 	int p1x,p1y,p2x,p2y;
 	
-	if(point1.x<point2.x)
-	{
-		p1x = (point1.x>0)?point1.x:0;
-		p2x = (point2.x<img_width)?point2.x:img_width;
-	}
-	else
-	{
-		p1x = (point2.x>0)?point2.x:0;
-		p2x = (point1.x<img_width)?point1.x:img_width;
-	}
+	p1x = rect->x;
+	p2x = p1x+rect->width-1;
+	p1y = rect->y;
+	p2y = p1y+rect->height-1;
 	
-	if(point1.y<point2.y)
-	{
-		p1y = (point1.y>0)?point1.y:0;
-		p2y = (point2.y<img_height)?point2.y:img_height;
-	}
-	else
-	{
-		p1y = (point2.y>0)?point2.y:0;
-		p2y = (point1.y<img_height)?point1.y:img_height;
-	}
-	
-	
-	// printf("p1x is %d\n",p1x);
-	// printf("p1y is %d\n",p1y);
-	// printf("p2x is %d\n",p2x);
-	// printf("p2y is %d\n",p2y);
+	if((dst->height != rect->height)||(dst->width != rect->width)||(dst->type != src->type))
+		imgMatRedefine(dst,rect->height,rect->width,src->type);
 	
 	int dst_width;
-	dst_width = (p2x-p1x)+1;
+	dst_width = dst->width;
 	
 	int dst_height;
-	dst_height =(p2y-p1y)+1;
-	
-	ImgMat *dst;
-	dst = imgCreateMat(dst_height,dst_width,src->type);
+	dst_height =dst->height;	
 	
 	unsigned char *p_dst;
 	p_dst = dst->data.ptr;
@@ -68,33 +56,143 @@ void imgCrop(ImgMat *src,ImgPoint point1,ImgPoint point2)
 	// printf("cn is %d\n",cn);
 	// printf("dst_height is %d\n",dst_height);
 	
-	if(cn == 1)
-	{	
-		for(j=0;j<dst_height;j++)
-			for(i=0;i<dst_width;i++)
-				DST(i,j,0) = SRC(i+p1x,j+p1y,0);
-	}
-	else if(cn == 3)
+	if((p1x>0)&&(p1y>0)&&(p2x<img_width)&&(p2y<img_height))
 	{
-		for(j=0;j<dst_height;j++)
-			for(i=0;i<dst_width;i++)
-			{
-				DST(i,j,0) = SRC(i+p1x,j+p1y,0);
-				DST(i,j,1) = SRC(i+p1x,j+p1y,1);
-				DST(i,j,2) = SRC(i+p1x,j+p1y,2);
-			}
+		if(cn == 1)
+		{	
+			for(j=0;j<dst_height;j++)
+				for(i=0;i<dst_width;i++)
+					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
+		}
+		else if(cn == 3)
+		{
+			for(j=0;j<dst_height;j++)
+				for(i=0;i<dst_width;i++)
+				{
+					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
+					DST(i,j,1) = SRC(i+p1x,j+p1y,1);
+					DST(i,j,2) = SRC(i+p1x,j+p1y,2);
+				}
+		}
 	}
-	
-	imgReleaseMatData(src);
-	free(src->hidinfo);
-	
-	src->hidinfo = dst->hidinfo;
-	src->step = dst->step;
-	src->size = dst->size;
-	src->width = dst_width;
-	src->height = dst_height;
-	src->data.ptr = p_dst;
+	else
+	{
+		if(cn == 1)
+		{
+			while(j+p1y<0)
+			{
+				for(i=0;i<dst_width;i++)
+					DST(i,j,0) = 0;
+				
+				j=j+1;
+			}
+			
+			while((j+p1y<img_height)&&(j<dst_height))
+			{
+				while(i+p1x<0)
+				{
+					DST(i,j,0) = 0;
+					i = i+1;
+				}
+				
+				while((i+p1x<img_width)&&(i<dst_width))
+				{
+					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
+					i = i+1;
+				}
+				
+				while(i<dst_width)
+				{
+					DST(i,j,0) = 0;
+					i = i+1;
+				}
+			}
+			
+			while(j<dst_height)
+			{
+				for(i=0;i<dst_width;i++)
+					DST(i,j,0) = 0;
+				
+				j=j+1;
+			}
+		}
+		
+		if(cn == 3)
+		{
+			while(j+p1y<0)
+			{
+				for(i=0;i<dst_width;i++)
+				{
+					DST(i,j,0) = 0;
+					DST(i,j,1) = 0;
+					DST(i,j,2) = 0;
+				}
+				
+				j=j+1;
+			}
+			
+			while((j+p1y<img_height)&&(j<dst_height))
+			{
+				while(i+p1x<0)
+				{
+					DST(i,j,0) = 0;
+					DST(i,j,1) = 0;
+					DST(i,j,2) = 0;
+					i = i+1;
+				}
+				
+				while((i+p1x<img_width)&&(i<dst_width))
+				{
+					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
+					DST(i,j,1) = SRC(i+p1x,j+p1y,1);
+					DST(i,j,2) = SRC(i+p1x,j+p1y,2);
+					i = i+1;
+				}
+				
+				while(i<dst_width)
+				{
+					DST(i,j,0) = 0;
+					DST(i,j,1) = 0;
+					DST(i,j,2) = 0;
+					i = i+1;
+				}
+			}
+			
+			while(j<dst_height)
+			{
+				for(i=0;i<dst_width;i++)
+				{
+					DST(i,j,0) = 0;
+					DST(i,j,1) = 0;
+					DST(i,j,2) = 0;
+				}
+				
+				j=j+1;
+			}
+		}
+	}
+}
 
-	free(dst);	
+void Crop(ImgMat *src,ImgMat *dst,ImgRect *rect)
+{
+	#ifdef DEBUG
+	SOURCE_ERROR_CHECK(imgCrop,src1);
+	if((rect->width ==0)||(rect->height ==0))
+	{
+		printf("IMG Error\n\tin imgCrop:size of crop is wrong.\n");
+		exit(0);
+	}
+	#endif
 	
+	if(dst == NULL)
+	{
+		dst = imgCreateMat(rect->height,rect->width,src->type);
+		imgCrop(src,dst,rect);
+		free(src->data.ptr);
+		free(src->hidinfo);
+		*src = *dst;
+		free(dst);
+	}
+	else
+		imgCrop(src,dst,rect);
 }
