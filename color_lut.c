@@ -131,13 +131,6 @@ void imgSaveColorLUT(ImgColorLUT *lut,const char *file_name)
 ImgMat *imgNewMatHeader();
 ImgMat *imgCreateMat(int height,int width,char type);
 
-#define BAR_PTR {\
-	p_bar = malloc(img_height<<2);\
-	p_bar[0] = bar->data.ptr;\
-	for(i=1;i<img_height;i++)\
-		p_bar[i] = p_bar[i-1]+bar->step;\
-}\
-
 void imgReadColorBar(const char *file_name,ImgColorLUT *lut)
 {
 	#ifdef DEBUG
@@ -161,8 +154,12 @@ void imgReadColorBar(const char *file_name,ImgColorLUT *lut)
 	if(img_height!=256)
 		Resize(bar,NULL,256,img_width);
 	
-	unsigned char *p_bar;
-	p_bar = bar->data.ptr;
+	unsigned char *p0_bar;
+	unsigned char *p1_bar;
+	unsigned char *p2_bar;
+	p0_bar = bar->data.ptr;
+	p1_bar = p0_bar + bar->size;
+	p2_bar = p1_bar + bar->size;
 	
 	int cn;
 	cn = ((bar->type&0xF8)>>3)+1;
@@ -180,10 +177,9 @@ void imgReadColorBar(const char *file_name,ImgColorLUT *lut)
 		{
 			sum = 0;
 			for(i=0;i<img_width;i++)
-			{
-				sum = sum+(*p_bar);
-				p_bar = p_bar+1;
-			}
+				sum = sum+p0_bar[i];
+			
+			p0_bar = p0_bar+32;
 			lut->p[255-j] = sum/img_width;
 		}
 	}
@@ -196,11 +192,14 @@ void imgReadColorBar(const char *file_name,ImgColorLUT *lut)
 			sum_b = 0;
 			for(i=0;i<img_width;i++)
 			{
-				sum_b = sum_b+p_bar[0];
-				sum_g = sum_g+p_bar[1];
-				sum_r = sum_r+p_bar[2];
-				p_bar = p_bar+cn;
+				sum_b = sum_b+p0_bar[i];
+				sum_g = sum_g+p1_bar[i];
+				sum_r = sum_r+p2_bar[i];
 			}
+			p0_bar = p0_bar+32;
+			p1_bar = p1_bar+32;
+			p2_bar = p2_bar+32;
+
 			lut->r[255-j] = sum_r/img_width;
 			lut->g[255-j] = sum_g/img_width;
 			lut->b[255-j] = sum_b/img_width;
@@ -228,30 +227,33 @@ void imgSaveColorBar(ImgColorLUT *lut,const char *file_name)
 	
 	int i,j;
 
-	unsigned char **p_bar;
-	BAR_PTR;
-	
-	unsigned char *p;
+	unsigned char *p0_bar;
+	unsigned char *p1_bar;
+	unsigned char *p2_bar;
+	p0_bar = bar->data.ptr;
+	p1_bar = p0_bar + 8192;
+	p2_bar = p1_bar + 8192;
 	
 	int r,g,b;
 
 	for(j=0;j<256;j++)
-	{
-		p = p_bar[j];
+	{		
 		r = lut->r[255-j];
 		g = lut->g[255-j];
 		b = lut->b[255-j];
 		
 		for(i=0;i<32;i++)
 		{
-			p[0] = b;
-			p[1] = g;
-			p[2] = r;
-			p = p+3;
+			p0_bar[i] = b;
+			p1_bar[i] = g;
+			p2_bar[i] = r;
 		}
-	}
-	
-	free(p_bar);	
+		
+		p0_bar = p0_bar + 32;
+		p1_bar = p1_bar + 32;
+		p2_bar = p2_bar + 32;
+		
+	}	
 	
 	imgSaveBMP(bar,file_name);
 	imgReleaseMat(bar);
@@ -309,11 +311,19 @@ void imgColorLUT(ImgMat *src,ImgMat *dst,ImgColorLUT *lut)
 		cn_dst = lut->cn;
 	}	
 	
-	unsigned char *p_src;
-	p_src = src->data.ptr;
+	unsigned char *p0_src;
+	unsigned char *p1_src;
+	unsigned char *p2_src;
+	p0_src = src->data.ptr;
+	p1_src = p0_src +img_size;
+	p2_src = p1_src +img_size;
 	
-	unsigned char *p_dst;
-	p_dst = dst->data.ptr;
+	unsigned char *p0_dst;
+	unsigned char *p1_dst;
+	unsigned char *p2_dst;
+	p0_dst = dst->data.ptr;
+	p1_dst = p0_dst +img_size;
+	p2_dst = p1_dst +img_size;
 	
 	int data,data_r,data_g,data_b;
 	int i;
@@ -322,38 +332,30 @@ void imgColorLUT(ImgMat *src,ImgMat *dst,ImgColorLUT *lut)
 	{
 		for(i=0;i<img_size;i++)
 		{
-			data = *p_src;
-			*p_dst = lut->p[data];
-			p_src = p_src+1;
-			p_dst = p_dst+1;
+			data = p0_src[i];
+			p0_dst[i] = lut->p[data];
 		}
 	}
 	else if((cn_src ==1)&&(cn_dst >=3))
 	{
 		for(i=0;i<img_size;i++)
 		{
-			data = *p_src;
-			p_dst[0] = lut->b[data];
-			p_dst[1] = lut->g[data];
-			p_dst[2] = lut->r[data];
-			
-			p_src= p_src+1;
-			p_dst= p_dst+cn_dst;
+			data = p0_src[i];
+			p0_dst[i] = lut->b[data];
+			p1_dst[i] = lut->g[data];
+			p2_dst[i] = lut->r[data];
 		}
 	}
 	else if((cn_src >=3)&&(cn_dst >=3))
 	{
 		for(i=0;i<img_size;i++)
 		{
-			data_b = p_src[0]; 
-			data_g = p_src[1]; 
-			data_r = p_src[2]; 
-			p_dst[0] = lut->b[data_b];
-			p_dst[1] = lut->g[data_g];
-			p_dst[2] = lut->r[data_r];
-			
-			p_src= p_src+cn_src;
-			p_dst= p_dst+cn_dst;
+			data_b = p0_src[i]; 
+			data_g = p1_src[i]; 
+			data_r = p2_src[i]; 
+			p0_dst[i] = lut->b[data];
+			p1_dst[i] = lut->g[data];
+			p2_dst[i] = lut->r[data];
 		}
 	}
 }

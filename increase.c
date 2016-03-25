@@ -43,8 +43,9 @@ void imgIncrease(ImgMat *src,ImgMat *dst,int *value)
 	int type;
 	type = (src->type)&0x07;
 	
-	int i;
+	int i,k;
 	int result;
+	int data;
 	
 	if(type == TYPE_8U)
 	{
@@ -53,57 +54,23 @@ void imgIncrease(ImgMat *src,ImgMat *dst,int *value)
 		unsigned char *p_dst_8u;
 		p_dst_8u = dst->data.ptr;
 		
-		if(cn = 1)
+		for(k=0;k<cn;k++)
 		{
+			data = x[k];
 			for(i=0;i<img_size;i++)
 			{
-				result = (*p_src_8u)+(*x);
+				result = p_src_8u[i]+data;
 				
 				if(result>255)
 					result = 255;
 				else if(result<0)
 					result = 0;
 				
-				*p_dst_8u = result;
-				
-				p_src_8u++;
-				p_dst_8u++;
+				p_dst_8u[i] = result;
 			}
-		}
-		else if(cn >= 3)
-		{
-			for(i=0;i<img_size;i++)
-			{
-				result = p_src_8u[0]+x[0];
-				
-				if(result>255)
-					result = 255;
-				else if(result<0)
-					result = 0;
-				
-				p_dst_8u[0] = result;
-				
-				result = p_src_8u[1]+x[1];
-				
-				if(result>255)
-					result = 255;
-				else if(result<0)
-					result = 0;
-				
-				p_dst_8u[1] = result;
-				
-				result = p_src_8u[2]+x[2];
-				
-				if(result>255)
-					result = 255;
-				else if(result<0)
-					result = 0;
-				
-				p_dst_8u[2] = result;
-				
-				p_src_8u = p_src_8u+cn;
-				p_dst_8u = p_dst_8u+cn;
-			}
+			
+			p_src_8u = p_src_8u+img_size;
+			p_dst_8u = p_dst_8u+img_size;			
 		}
 	}
 	else if(type == TYPE_8S)
@@ -113,57 +80,23 @@ void imgIncrease(ImgMat *src,ImgMat *dst,int *value)
 		char *p_dst_8s;
 		p_dst_8s = (char *)dst->data.ptr;
 		
-		if(cn = 1)
+		for(k=0;k<cn;k++)
 		{
+			data = x[k];
 			for(i=0;i<img_size;i++)
 			{
-				result = (*p_src_8s)+(*x);
+				result = p_src_8s[i]+data;
 				
 				if(result>255)
 					result = 255;
 				else if(result<0)
 					result = 0;
 				
-				*p_dst_8s = result;
-				
-				p_src_8s++;
-				p_dst_8s++;
+				p_dst_8s[i] = result;
 			}
-		}
-		else if(cn >= 3)
-		{
-			for(i=0;i<img_size;i++)
-			{
-				result = p_src_8s[0]+x[0];
-				
-				if(result>255)
-					result = 255;
-				else if(result<0)
-					result = 0;
-				
-				p_dst_8s[0] = result;
-				
-				result = p_src_8s[1]+x[1];
-				
-				if(result>255)
-					result = 255;
-				else if(result<0)
-					result = 0;
-				
-				p_dst_8s[1] = result;
-				
-				result = p_src_8s[2]+x[2];
-				
-				if(result>255)
-					result = 255;
-				else if(result<0)
-					result = 0;
-				
-				p_dst_8s[2] = result;
-				
-				p_src_8s = p_src_8s+cn;
-				p_dst_8s = p_dst_8s+cn;
-			}
+			
+			p_src_8s = p_src_8s+img_size;
+			p_dst_8s = p_dst_8s+img_size;			
 		}
 	}
 }
@@ -172,19 +105,8 @@ ImgMat *imgCreateMat(int height,int width,char type);
 
 void Increase(ImgMat *src,ImgMat *dst,int *x)
 {
-	#ifdef DEBUG
-	SOURCE_ERROR_CHECK(imgIncrease,src);
-	#endif
-	
 	if(dst == NULL)
-	{
-		dst = imgCreateMat(src->height,src->width,src->type);
-		imgIncrease(src,dst,x);
-		free(src->data.ptr);
-		free(src->hidinfo);
-		*src = *dst;
-		free(dst);
-	}
+		imgIncrease(src,src,x);
 	else
 		imgIncrease(src,dst,x);
 }

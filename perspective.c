@@ -283,6 +283,8 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			}
 		}
 	}	
+	free(p_src);
+	free(p_dst);
 }
 
 ImgMat *imgCreateMat(int height,int width,char type);

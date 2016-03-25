@@ -229,3 +229,13 @@ typedef struct ImgColorLUT
 }ImgColorLUT;
 
 
+#define NOT_CHANGE_WITH_THRESHOLD 256
+typedef struct ImgThreshold
+{
+	int thresh_num;
+	
+	int thresh[9];
+	int value[10];
+}ImgThreshold;
+
+

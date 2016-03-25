@@ -8,8 +8,7 @@
 						x = satur2;
 
 #define IMG_SUB(p_src1,p_src2,p_dst) {\
-	\
-	if(cn==1)\
+	for(k=0;k<cn;k++)\
 	{\
 		for(i=0;i<img_size;i++)\
 		{\
@@ -22,80 +21,13 @@
 			p_src2 = p_src2 +1;\
 			p_dst = p_dst +1;\
 		}\
+		\
+		if(k<(cn1-1))\
+			p_src1 = p_src1+img_size;\
+		if(k<(cn2-1))\
+			p_src2 = p_src2+img_size;\
 	}\
-	else if((cn1 == 1)&&(cn2 == 3))\
-	{\
-		for(i=0;i<img_size;i++)\
-		{\
-			data  = p_src1[0]-p_src2[0];\
-			SATUR(data);\
-			\
-			p_dst[0] = data;\
-			\
-			data  = p_src1[0]-p_src2[1];\
-			SATUR(data);\
-			\
-			p_dst[1] = data;\
-			\
-			data  = p_src1[0]-p_src2[2];\
-			SATUR(data);\
-			\
-			p_dst[2] = data;\
-			\
-			p_src1 = p_src1 +1;\
-			p_src2 = p_src2 +3;\
-			p_dst = p_dst +3;\
-		}\
-	}\
-	else if((cn1 == 3)&&(cn2 == 1))\
-	{\
-		for(i=0;i<img_size;i++)\
-		{\
-			data  = p_src1[0]-p_src2[0];\
-			SATUR(data);\
-			\
-			p_dst[0] = data;\
-			\
-			data  = p_src1[1]-p_src2[0];\
-			SATUR(data);\
-			\
-			p_dst[1] = data;\
-			\
-			data  = p_src1[2]-p_src2[0];\
-			SATUR(data);\
-			\
-			p_dst[2] = data;\
-			\
-			p_src1 = p_src1 +3;\
-			p_src2 = p_src2 +1;\
-			p_dst = p_dst +3;\
-		}\
-	}\
-	else if((cn1 == 3)&&(cn2 == 3))\
-	{\
-		for(i=0;i<img_size;i++)\
-		{\
-			data  = p_src1[0]-p_src2[0];\
-			SATUR(data);\
-			\
-			p_dst[0] = data;\
-			\
-			data  = p_src1[1]-p_src2[1];\
-			SATUR(data);\
-			\
-			p_dst[1] = data;\
-			\
-			data  = p_src1[2]-p_src2[2];\
-			SATUR(data);\
-			\
-			p_dst[2] = data;\
-			\
-			p_src1 = p_src1 +3;\
-			p_src2 = p_src2 +3;\
-			p_dst = p_dst +3;\
-		}\
-	}\
-}
+}\
 
 void imgSub(ImgMat *src1,ImgMat *src2,ImgMat *dst)
 {
@@ -132,7 +64,7 @@ void imgSub(ImgMat *src1,ImgMat *src2,ImgMat *dst)
 	}
 	
 	int img_size;
-	img_size = dst->width*dst->height;
+	img_size = dst->size;
 
 	int type_s1;
 	type_s1 = (src1->type)&0x07;
@@ -153,7 +85,7 @@ void imgSub(ImgMat *src1,ImgMat *src2,ImgMat *dst)
 		satur2 = -128;
 	}
 	
-	int i;
+	int i,k;
 	int data;
 	
 	#define TYPE_D unsigned char
@@ -249,7 +181,7 @@ void imgSub(ImgMat *src1,ImgMat *src2,ImgMat *dst)
 	}	
 }
 
-ImgMat *imgCreateMat(int height,int width,char type);
+ImgMat *imgCreateMatHeader(int height,int width,char type);
 
 void Sub(ImgMat *src1,ImgMat *src2,ImgMat *dst)
 {
@@ -259,9 +191,10 @@ void Sub(ImgMat *src1,ImgMat *src2,ImgMat *dst)
 	
 	if(dst == NULL)
 	{
-		dst = imgCreateMat(src1->height,src1->width,src1->type);
+		int type = ((src1->type)&0xF8)+1;
+		dst = imgCreateMatHeader(src1->height,src1->width,type);
+		imgSpecifyMatData(dst,src1->data.ptr);
 		imgSub(src1,src2,dst);
-		free(src1->data.ptr);
 		free(src1->hidinfo);
 		*src1 = *dst;
 		free(dst);

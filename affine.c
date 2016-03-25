@@ -2,38 +2,49 @@
 #include "type.h"
 #include "err.h"
 
-#define SRC_PTR {\
-	p_src = malloc((src->height)<<2);\
-	p_src[0] = src->data.ptr;\
-	for(i=1;i<src->height;i++)\
-		p_src[i] = p_src[i-1]+src->step;\
+#define PTR(mat) {\
+	p0##mat = malloc((mat->height)<<2);\
+	p0##mat[0] = mat->data.ptr;\
+	for(i=1;i<mat->height;i++)\
+		p0##mat[i] = p0##mat[i-1]+mat->width;\
+	if(cn>1)\
+	{\
+		p1##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p1##mat[i] = p0##mat[i]+mat->size;\
+	}\
+	if(cn>2)\
+	{\
+		p2##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p2##mat[i] = p1##mat[i]+mat->size;\
+	}\
+	if(cn>3)\
+	{\
+		p3##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p3##mat[i] = p2##mat[i]+mat->size;\
+	}\
 }\
 
-#define DST_PTR {\
-	p_dst = malloc((dst->height)<<2);\
-	p_dst[0] = dst->data.ptr;\
-	for(i=1;i<dst->height;i++)\
-		p_dst[i] = p_dst[i-1]+dst->step;\
+#define SRC_0(x,y) *(p0src[y]+(x))
+#define DST_0(x,y) *(p0dst[y]+(x))
+#define SRC_1(x,y) *(p1src[y]+(x))
+#define DST_1(x,y) *(p1dst[y]+(x))
+#define SRC_2(x,y) *(p2src[y]+(x))
+#define DST_2(x,y) *(p2dst[y]+(x))
+#define SRC_3(x,y) *(p3src[y]+(x))
+#define DST_3(x,y) *(p3dst[y]+(x))
+
+#define PTR_FREE(mat) {\
+	free(p0##mat);\
+	if(cn>1)\
+		free(p1##mat);\
+	if(cn>2)\
+		free(p2##mat);\
+	if(cn>3)\
+		free(p3##mat);\
 }\
-
-#define SRC(x,y) *(p_src[y]+(x))
-#define DST(x,y) *(p_dst[y]+(x))
-
-#define SRC3_0(x,y) *(p_src[y]+(x)+(x)+(x))
-#define DST3_0(x,y) *(p_dst[y]+(x)+(x)+(x))
-#define SRC3_1(x,y) *(p_src[y]+(x)+(x)+(x)+1)
-#define DST3_1(x,y) *(p_dst[y]+(x)+(x)+(x)+1)
-#define SRC3_2(x,y) *(p_src[y]+(x)+(x)+(x)+2)
-#define DST3_2(x,y) *(p_dst[y]+(x)+(x)+(x)+2)
-
-#define SRC4_0(x,y) *(p_src[y]+(x)+(x)+(x)+(x))
-#define DST4_0(x,y) *(p_dst[y]+(x)+(x)+(x)+(x))
-#define SRC4_1(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+1)
-#define DST4_1(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+1)
-#define SRC4_2(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+2)
-#define DST4_2(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+2)
-#define SRC4_3(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+3)
-#define DST4_3(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+3)
 
 int imgLinearEquation(float *data,float *answer,int num);			
 				
@@ -48,18 +59,8 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	#ifdef DEBUG
 	SOURCE_ERROR_CHECK(imgAffine,src);
 	DESTINATION_ERROR_CHECK(imgAffine,dst);
-	if(ps == NULL)
-	{
-		printf("IMG Error\n\tin imgAffine:no source points.\n");
-		exit(0);
-	}
-	if(pd == NULL)
-	{
-		printf("IMG Error\n\tin imgAffine:no destination points.\n");
-		exit(0);
-	}
 	#endif
-	
+		
 	int i,j;
 	
 	int src_width;
@@ -77,17 +78,60 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	if(dst->type != src->type)
 		imgMatRedefine(dst,dst_height,dst_width,src->type);
 	
-	unsigned char **p_src;
-	SRC_PTR;
+	ImgPoint point_s[3];
+	if(ps!=NULL)
+	{
+		point_s[0] = ps[0];
+		point_s[1] = ps[1];
+		point_s[2] = ps[2];
+	}
+	else
+	{
+		point_s[0].x = 0;
+		point_s[0].y = 0;
+		point_s[1].x = src_width;
+		point_s[1].y = 0;
+		point_s[2].x = 0;
+		point_s[2].y = src_height;
+	}
 	
-	unsigned char **p_dst;
-	DST_PTR;
+	ImgPoint point_d[3];
+	if(pd!=NULL)
+	{
+		point_d[0] = pd[0];
+		point_d[1] = pd[1];
+		point_d[2] = pd[2];
+	}
+	else
+	{
+		point_d[0].x = 0;
+		point_d[0].y = 0;
+		point_d[1].x = dst_width;
+		point_d[1].y = 0;
+		point_d[2].x = 0;
+		point_d[2].y = dst_height;
+	}
+	
+	int cn;
+	cn = ((src->type&0xF8)>>3)+1;
+	
+	unsigned char **p0src;
+	unsigned char **p1src;
+	unsigned char **p2src;
+	unsigned char **p3src;
+	PTR(src);
+	
+	unsigned char **p0dst;
+	unsigned char **p1dst;
+	unsigned char **p2dst;
+	unsigned char **p3dst;
+	PTR(dst);
 	
 	float answer[3];
 	
-	float data1[12] =  {(float)pd[0].x,(float)pd[0].y,1.0,0.0-ps[0].x,
-						(float)pd[1].x,(float)pd[1].y,1.0,0.0-ps[1].x,
-						(float)pd[2].x,(float)pd[2].y,1.0,0.0-ps[2].x};	
+	float data1[12] =  {(float)point_d[0].x,(float)point_d[0].y,1.0,0.0-point_s[0].x,
+						(float)point_d[1].x,(float)point_d[1].y,1.0,0.0-point_s[1].x,
+						(float)point_d[2].x,(float)point_d[2].y,1.0,0.0-point_s[2].x};	
 	
 	imgLinearEquation(data1,answer,3);
 	
@@ -96,9 +140,9 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	k2 = answer[1];
 	b1 = answer[2];
 	
-	float data2[12] =  {(float)pd[0].x,(float)pd[0].y,1.0,0.0-ps[0].y,
-						(float)pd[1].x,(float)pd[1].y,1.0,0.0-ps[1].y,
-						(float)pd[2].x,(float)pd[2].y,1.0,0.0-ps[2].y};
+	float data2[12] =  {(float)point_d[0].x,(float)point_d[0].y,1.0,0.0-point_s[0].y,
+						(float)point_d[1].x,(float)point_d[1].y,1.0,0.0-point_s[1].y,
+						(float)point_d[2].x,(float)point_d[2].y,1.0,0.0-point_s[2].y};
 						
 	imgLinearEquation(data2,answer,3);
 	
@@ -107,16 +151,15 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	k4 = answer[1];
 	b2 = answer[2];
 	
-	// printf("x = %f*x + %f*y + %f\n",k1,k2,b1);
-	// printf("y = %f*x + %f*y + %f\n",k3,k4,b2);
+	// printf("ps is (%d,%d),(%d,%d),(%d,%d)\n", point_s[0].x,point_s[0].y,point_s[1].x,point_s[1].y,point_s[2].x,point_s[2].y);
+	// printf("pd is (%d,%d),(%d,%d),(%d,%d)\n", point_d[0].x,point_d[0].y,point_d[1].x,point_d[1].y,point_d[2].x,point_d[2].y);
+	// printf("xs = %f*xd + %f*yd + %f\n",k1,k2,b1);
+	// printf("ys = %f*xd + %f*yd + %f\n",k3,k4,b2);
 	
 	float x,y;
 	int x1,y1,x2,y2;
 	float wx,wy;
 	float w1,w2,w3,w4;
-	
-	int cn;
-	cn = ((src->type&0xF8)>>3)+1;
 	
 	if(cn == 1)
 	{
@@ -127,9 +170,9 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			
 			for(i=0;i<dst_width;i++)
 			{
-				if((x>src_width)||(x<0)||(y>src_height)||(y<0))
+				if((x>=(src_width-1))||(x<0)||(y>=(src_height-1))||(y<0))
 				{
-					DST(i,j) = 0;
+					DST_0(i,j) = 0;
 					
 					x = x+k1;
 					y = y+k3;
@@ -150,7 +193,7 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				w3 = wx*wy;
 				w4 = (1-wx)*wy;
 				
-				DST(i,j) =(int)((float)SRC(x1,y1)*w1+(float)SRC(x2,y1)*w2+(float)SRC(x2,y2)*w3+(float)SRC(x1,y2)*w4);
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
 				
 				x = x+k1;
 				y = y+k3;
@@ -165,11 +208,13 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			x = (float)j*k2+b1;
 			y = (float)j*k4+b2;
 			
+			// printf("j is %d\n",j);
+			
 			for(i=0;i<dst_width;i++)
 			{
-				if((x>src_width)||(x<0)||(y>src_height)||(y<0))
+				if((x>=(src_width-1))||(x<0)||(y>=(src_height-1))||(y<0))
 				{
-					DST(i,j) = 0;
+					DST_0(i,j) = 0;
 					
 					x = x+k1;
 					y = y+k3;
@@ -190,9 +235,9 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				w3 = wx*wy;
 				w4 = (1-wx)*wy;
 				
-				DST3_0(i,j) =(int)((float)SRC3_0(x1,y1)*w1+(float)SRC3_0(x2,y1)*w2+(float)SRC3_0(x2,y2)*w3+(float)SRC3_0(x1,y2)*w4);
-				DST3_1(i,j) =(int)((float)SRC3_1(x1,y1)*w1+(float)SRC3_1(x2,y1)*w2+(float)SRC3_1(x2,y2)*w3+(float)SRC3_1(x1,y2)*w4);
-				DST3_2(i,j) =(int)((float)SRC3_2(x1,y1)*w1+(float)SRC3_2(x2,y1)*w2+(float)SRC3_2(x2,y2)*w3+(float)SRC3_2(x1,y2)*w4);
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
+				DST_1(i,j) =(int)((float)SRC_1(x1,y1)*w1+(float)SRC_1(x2,y1)*w2+(float)SRC_1(x2,y2)*w3+(float)SRC_1(x1,y2)*w4);
+				DST_2(i,j) =(int)((float)SRC_2(x1,y1)*w1+(float)SRC_2(x2,y1)*w2+(float)SRC_2(x2,y2)*w3+(float)SRC_2(x1,y2)*w4);
 				
 				x = x+k1;
 				y = y+k3;
@@ -208,9 +253,9 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			
 			for(i=0;i<dst_width;i++)
 			{
-				if((x>src_width)||(x<0)||(y>src_height)||(y<0))
+				if((x>=(src_width-1))||(x<0)||(y>=(src_height-1))||(y<0))
 				{
-					DST(i,j) = 0;
+					DST_0(i,j) = 0;
 					
 					x = x+k1;
 					y = y+k3;
@@ -231,17 +276,18 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				w3 = wx*wy;
 				w4 = (1-wx)*wy;
 				
-				DST4_0(i,j) =(int)((float)SRC4_0(x1,y1)*w1+(float)SRC4_0(x2,y1)*w2+(float)SRC4_0(x2,y2)*w3+(float)SRC4_0(x1,y2)*w4);
-				DST4_1(i,j) =(int)((float)SRC4_1(x1,y1)*w1+(float)SRC4_1(x2,y1)*w2+(float)SRC4_1(x2,y2)*w3+(float)SRC4_1(x1,y2)*w4);
-				DST4_2(i,j) =(int)((float)SRC4_2(x1,y1)*w1+(float)SRC4_2(x2,y1)*w2+(float)SRC4_2(x2,y2)*w3+(float)SRC4_2(x1,y2)*w4);
-				DST4_3(i,j) =(int)((float)SRC4_3(x1,y1)*w1+(float)SRC4_3(x2,y1)*w2+(float)SRC4_3(x2,y2)*w3+(float)SRC4_3(x1,y2)*w4);
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
+				DST_1(i,j) =(int)((float)SRC_1(x1,y1)*w1+(float)SRC_1(x2,y1)*w2+(float)SRC_1(x2,y2)*w3+(float)SRC_1(x1,y2)*w4);
+				DST_2(i,j) =(int)((float)SRC_2(x1,y1)*w1+(float)SRC_2(x2,y1)*w2+(float)SRC_2(x2,y2)*w3+(float)SRC_2(x1,y2)*w4);
+				DST_3(i,j) =(int)((float)SRC_3(x1,y1)*w1+(float)SRC_3(x2,y1)*w2+(float)SRC_3(x2,y2)*w3+(float)SRC_3(x1,y2)*w4);
 				
 				x = x+k1;
 				y = y+k3;
 			}
 		}
 	}
-	
+	PTR_FREE(src);
+	PTR_FREE(dst);
 }
 
 ImgMat *imgCreateMat(int height,int width,char type);
@@ -251,6 +297,9 @@ void Affine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	#ifdef DEBUG
 	SOURCE_ERROR_CHECK(imgAffine,src);
 	#endif
+	
+	if((ps==NULL)&&(pd==NULL)&&(dst==NULL))
+		return;
 	
 	if(dst == NULL)
 	{
@@ -264,3 +313,5 @@ void Affine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	else
 		imgAffine(src,ps,dst,pd);
 }
+
+

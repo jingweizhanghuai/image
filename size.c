@@ -1,47 +1,56 @@
 #include <stdio.h>
 #include "type.h"
+#include "err.h"
 
-#define SRC_PTR {\
-	p_src = malloc((src->height)<<2);\
-	p_src[0] = src->data.ptr;\
-	for(i=1;i<src->height;i++)\
-		p_src[i] = p_src[i-1]+src->step;\
+#define PTR(mat) {\
+	p0##mat = malloc((mat->height)<<2);\
+	p0##mat[0] = mat->data.ptr;\
+	for(i=1;i<mat->height;i++)\
+		p0##mat[i] = p0##mat[i-1]+mat->width;\
+	if(cn>1)\
+	{\
+		p1##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p1##mat[i] = p0##mat[i]+mat->size;\
+	}\
+	if(cn>2)\
+	{\
+		p2##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p2##mat[i] = p1##mat[i]+mat->size;\
+	}\
+	if(cn>3)\
+	{\
+		p3##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p3##mat[i] = p2##mat[i]+mat->size;\
+	}\
 }\
 
-#define DST_PTR {\
-	p_dst = malloc((dst->height)<<2);\
-	p_dst[0] = dst->data.ptr;\
-	for(i=1;i<dst->height;i++)\
-		p_dst[i] = p_dst[i-1]+dst->step;\
+#define SRC_0(x,y) *(p0src[y]+(x))
+#define DST_0(x,y) *(p0dst[y]+(x))
+#define SRC_1(x,y) *(p1src[y]+(x))
+#define DST_1(x,y) *(p1dst[y]+(x))
+#define SRC_2(x,y) *(p2src[y]+(x))
+#define DST_2(x,y) *(p2dst[y]+(x))
+#define SRC_3(x,y) *(p3src[y]+(x))
+#define DST_3(x,y) *(p3dst[y]+(x))
+
+#define PTR_FREE(mat) {\
+	free(p0##mat);\
+	if(cn>1)\
+		free(p1##mat);\
+	if(cn>2)\
+		free(p2##mat);\
+	if(cn>3)\
+		free(p3##mat);\
 }\
-
-#define SRC(x,y) *(p_src[y]+(x))
-#define DST(x,y) *(p_dst[y]+(x))
-
-#define SRC3_0(x,y) *(p_src[y]+(x)+(x)+(x))
-#define DST3_0(x,y) *(p_dst[y]+(x)+(x)+(x))
-#define SRC3_1(x,y) *(p_src[y]+(x)+(x)+(x)+1)
-#define DST3_1(x,y) *(p_dst[y]+(x)+(x)+(x)+1)
-#define SRC3_2(x,y) *(p_src[y]+(x)+(x)+(x)+2)
-#define DST3_2(x,y) *(p_dst[y]+(x)+(x)+(x)+2)
-
-#define SRC4_0(x,y) *(p_src[y]+(x)+(x)+(x)+(x))
-#define DST4_0(x,y) *(p_dst[y]+(x)+(x)+(x)+(x))
-#define SRC4_1(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+1)
-#define DST4_1(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+1)
-#define SRC4_2(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+2)
-#define DST4_2(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+2)
-#define SRC4_3(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+3)
-#define DST4_3(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+3)
 
 void imgResize(ImgMat *src,ImgMat *dst,int height,int width)
 {
 #ifdef DEBUG
-	if(dst==NULL)
-	{
-		printf("IMG Error:\n\tin imgResize:\n");
-		exit(0);
-	}
+	SOURCE_ERROR_CHECK(imgDebase,src);
+	DESTINATION_ERROR_CHECK(imgDebase,dst);
 #endif
 	
 	int src_width;
@@ -65,104 +74,136 @@ void imgResize(ImgMat *src,ImgMat *dst,int height,int width)
 	if((dst_width != dst->width)||(dst_height != dst->height)||(dst->type != src->type))
 		imgMatRedefine(dst,dst_height,dst_width,src->type);
 	
-	int i,j;	
+	int cn;
+	cn = ((src->type&0xF8)>>3)+1;
 	
-	unsigned char **p_src;
-	SRC_PTR;
+	int i,j;
 	
-	unsigned char **p_dst;
-	DST_PTR;
+	unsigned char **p0src;
+	unsigned char **p1src;
+	unsigned char **p2src;
+	unsigned char **p3src;
+	PTR(src);
+	
+	unsigned char **p0dst;
+	unsigned char **p1dst;
+	unsigned char **p2dst;
+	unsigned char **p3dst;
+	PTR(dst);
 	
 	float kx,ky;
-	kx = (float)src_width/(float)dst_width;
-	ky = (float)src_height/(float)dst_height;	
+	kx = (float)(src_width)/(float)(dst_width);
+	ky = (float)(src_height)/(float)(dst_height);	
 	
 	int x1,y1,x2,y2;
 	float w1,w2,w3,w4;
 	
 	float x,y;
 	float wx,wy;
-	
-	int cn;
-	cn = ((src->type&0xF8)>>3)+1;
 
 	if(cn == 1)
 	{
+		y = 0;
 		for(j=0;j<dst_height;j++)
+		{		
+			y1 = (int)y;
+			y2 = y1+1;
+						
+			wy = y-(float)y1;
+			
+			y = y+ky;
+			
+			x= 0.0;
 			for(i=0;i<dst_width;i++)
-			{
-				x = ((float)i)*kx;
-				y = ((float)j)*ky;
-				
+			{				
 				x1 = (int)x;
-				x2 = x1+1;
-				y1 = (int)y;
-				y2 = y1+1;
+				x2 = x1+1;	
 				
 				wx = x-(float)x1;
-				wy = y-(float)y1;
 				
-				w1 = (1.0-wx)*(1.0-wy);
-				w2 = wx*(1.0-wy);
-				w3 = (1.0-wx)*wy;
-				w4 = wx*wy;
+				x = x+kx;	
 				
-				DST(i,j) = SRC(x1,y1)*w1+SRC(x2,y1)*w2+SRC(x1,y2)*w3+SRC(x2,y2)*w4;
+				w4 = wx*wy;				
+				w1 = 1.0-wx-wy+w4;
+				w2 = wx-w4;
+				w3 = wy-w4;
+				
+				
+				DST_0(i,j) = SRC_0(x1,y1)*w1+SRC_0(x2,y1)*w2+SRC_0(x1,y2)*w3+SRC_0(x2,y2)*w4;
 			}
+		}
 	}
 	else if(cn==3)
 	{
+		y = 0;
 		for(j=0;j<dst_height;j++)
+		{		
+			y1 = (int)y;
+			y2 = y1+1;
+						
+			wy = y-(float)y1;
+			
+			y = y+ky;
+			
+			x= 0.0;
 			for(i=0;i<dst_width;i++)
-			{
-				x = ((float)i)*kx;
-				y = ((float)j)*ky;
-				
+			{				
 				x1 = (int)x;
-				x2 = x1+1;
-				y1 = (int)y;
-				y2 = y1+1;
+				x2 = x1+1;	
 				
 				wx = x-(float)x1;
-				wy = y-(float)y1;
 				
-				w1 = (1.0-wx)*(1.0-wy);
-				w2 = wx*(1.0-wy);
-				w3 = (1.0-wx)*wy;
-				w4 = wx*wy;
+				x = x+kx;	
 				
-				DST3_0(i,j) = SRC3_0(x1,y1)*w1+SRC3_0(x2,y1)*w2+SRC3_0(x1,y2)*w3+SRC3_0(x2,y2)*w4;
-				DST3_1(i,j) = SRC3_1(x1,y1)*w1+SRC3_1(x2,y1)*w2+SRC3_1(x1,y2)*w3+SRC3_1(x2,y2)*w4;
-				DST3_2(i,j) = SRC3_2(x1,y1)*w1+SRC3_2(x2,y1)*w2+SRC3_2(x1,y2)*w3+SRC3_2(x2,y2)*w4;
+				w4 = wx*wy;				
+				w1 = 1.0-wx-wy+w4;
+				w2 = wx-w4;
+				w3 = wy-w4;
+				
+				
+				DST_0(i,j) = SRC_0(x1,y1)*w1+SRC_0(x2,y1)*w2+SRC_0(x1,y2)*w3+SRC_0(x2,y2)*w4;
+				DST_1(i,j) = SRC_1(x1,y1)*w1+SRC_1(x2,y1)*w2+SRC_1(x1,y2)*w3+SRC_1(x2,y2)*w4;
+				DST_2(i,j) = SRC_2(x1,y1)*w1+SRC_2(x2,y1)*w2+SRC_2(x1,y2)*w3+SRC_2(x2,y2)*w4;
 			}
+		}
 	}
 	else if(cn==4)
 	{
+		y = 0;
 		for(j=0;j<dst_height;j++)
+		{		
+			y1 = (int)y;
+			y2 = y1+1;
+						
+			wy = y-(float)y1;
+			
+			y = y+ky;
+			
+			x= 0.0;
 			for(i=0;i<dst_width;i++)
-			{
-				x = ((float)i)*kx;
-				y = ((float)j)*ky;
-				
+			{				
 				x1 = (int)x;
-				x2 = x1+1;
-				y1 = (int)y;
-				y2 = y1+1;
+				x2 = x1+1;	
 				
 				wx = x-(float)x1;
-				wy = y-(float)y1;
 				
-				w1 = (1.0-wx)*(1.0-wy);
-				w2 = wx*(1.0-wy);
-				w3 = (1.0-wx)*wy;
-				w4 = wx*wy;
+				x = x+kx;	
 				
-				DST4_0(i,j) = SRC4_0(x1,y1)*w1+SRC4_0(x2,y1)*w2+SRC4_0(x1,y2)*w3+SRC4_0(x2,y2)*w4;
-				DST4_1(i,j) = SRC4_1(x1,y1)*w1+SRC4_1(x2,y1)*w2+SRC4_1(x1,y2)*w3+SRC4_1(x2,y2)*w4;
-				DST4_2(i,j) = SRC4_2(x1,y1)*w1+SRC4_2(x2,y1)*w2+SRC4_2(x1,y2)*w3+SRC4_2(x2,y2)*w4;
-				DST4_2(i,j) = SRC4_2(x1,y1)*w1+SRC4_2(x2,y1)*w2+SRC4_2(x1,y2)*w3+SRC4_2(x2,y2)*w4;
+				w4 = wx*wy;				
+				w1 = 1.0-wx-wy+w4;
+				w2 = wx-w4;
+				w3 = wy-w4;
+				
+				
+				DST_0(i,j) = SRC_0(x1,y1)*w1+SRC_0(x2,y1)*w2+SRC_0(x1,y2)*w3+SRC_0(x2,y2)*w4;
+				DST_1(i,j) = SRC_1(x1,y1)*w1+SRC_1(x2,y1)*w2+SRC_1(x1,y2)*w3+SRC_1(x2,y2)*w4;
+				DST_2(i,j) = SRC_2(x1,y1)*w1+SRC_2(x2,y1)*w2+SRC_2(x1,y2)*w3+SRC_2(x2,y2)*w4;
+				DST_3(i,j) = SRC_3(x1,y1)*w1+SRC_3(x2,y1)*w2+SRC_3(x1,y2)*w3+SRC_3(x2,y2)*w4;
 			}
+		}
 	}
+	PTR_FREE(src);
+	PTR_FREE(dst);
 }
 
 ImgMat *imgCreateMat(int height,int width,char type);
@@ -170,6 +211,7 @@ ImgMat *imgCreateMat(int height,int width,char type);
 void Resize(ImgMat *src,ImgMat *dst,int height,int width)
 {
 #ifdef DEBUG
+	SOURCE_ERROR_CHECK(imgResize,src);
 	if(((height == 0)||(width ==0))&&(dst==NULL))
 	{
 		printf("IMG Error:\n\tin imgResize:\n");

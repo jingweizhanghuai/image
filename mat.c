@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "type.h"
-
+/*
 void imgPrintMat(void *mat)
 {
 	ImgMat *src;
@@ -26,10 +26,10 @@ void imgPrintMat(void *mat)
 		for(i=0;i<n;i=i+channel)
 		{
 			for(j=0;j<channel;j++)
-	printf("%3d ",data_point_8u[i+j]);
+				printf("%3d ",data_point_8u[i+j]);
 			printf(" | ");
 			if(((i+channel)%(src->width*channel))==0)
-	printf("\n");
+				printf("\n");
 		}
 	}
 
@@ -117,6 +117,7 @@ void imgPrintMat(void *mat)
 		}
 	}
 }
+*/
 
 void imgCreateMatData(ImgMat *p)
 {
@@ -162,17 +163,8 @@ void imgInitializeMatHeader(ImgMat *image,int height,int width,int type)
 	
 	image->cn = cn;
 
-	int type_size;
-	type_size = type & 0x07;
-
 	int depth;
-	if(type_size == 0) 		depth = 1;
-	else if(type_size == 1)	depth = 1;
-	else if(type_size == 2)	depth = 2;
-	else if(type_size == 3)	depth = 2;
-	else if(type_size == 4)	depth = 4;
-	else if(type_size == 5)	depth = 4;
-	else					depth = 8;	
+	depth = 1<<(type&0x06);
 
 	image->depth = depth;
 
@@ -186,7 +178,7 @@ void imgInitializeMatHeader(ImgMat *image,int height,int width,int type)
 	image->width = width;
 	
 	int size;
-	size = height*width*cn;
+	size = height*width;
 	
 	image->size = size;
 	
@@ -457,12 +449,99 @@ void imgMateMat(ImgMat *src,int size_height,int size_width,int type)
 
 #define imgCopyMatHeader(src) imgCreateMatHeader(src->height,src->width,src->type)
 
+void copy_mat_data(void *p_src,void *p_dst,int n)
+{
+	#ifdef DEBUG
+	if((p_src == NULL)||(p_dst == NULL))
+	{
+		printf("IMG Error:\n\tin imgCopyMat.\n");
+		exit(0);
+	}		
+	#endif
+	
+	printf("sssssssssssssssssssn is %d\n",n);
+	
+	if(n == 0)
+		return;
+	
+	int *src_data;
+	src_data = (int *)p_src;
+	
+	int *dst_data;
+	dst_data = (int *)p_dst;
+	
+	int size;
+	size = (n>>6);
+	
+	int i;
+	for(i=0;i<size;i++)
+	{
+		dst_data[0] = src_data[0];
+		dst_data[1] = src_data[1];
+		dst_data[2] = src_data[2];
+		dst_data[3] = src_data[3];
+		dst_data[4] = src_data[4];
+		dst_data[5] = src_data[5];
+		dst_data[6] = src_data[6];
+		dst_data[7] = src_data[7];
+		dst_data[8] = src_data[8];
+		dst_data[9] = src_data[9];
+		dst_data[10] = src_data[10];
+		dst_data[11] = src_data[11];
+		dst_data[12] = src_data[12];
+		dst_data[13] = src_data[13];
+		dst_data[14] = src_data[14];
+		dst_data[15] = src_data[15];
+		
+		src_data = src_data+16;
+		dst_data = dst_data+16;
+	}
+	
+	size = ((n>>2)-size*16);
+	
+	if(size !=0)
+	{
+		for(i=0;i<size;i++)
+		{
+			dst_data[0] = src_data[0];
+			
+			src_data = src_data+1;
+			dst_data = dst_data+1;
+		}
+	}
+	
+	size = n&0x03;
+	if(size !=0)
+	{
+		char *psrc;
+		psrc = (char *)p_src;
+		char *pdst;
+		pdst = (char *)p_dst;
+		
+		for(i=0;i<size;i++)
+		{
+			*pdst = *psrc;
+			psrc++;
+			pdst++;
+		}
+	}
+}
+
 void imgCopyMat(ImgMat *src,ImgMat *dst)
 {
-	imgMate(src,dst);
+	#ifdef DEBUG
+	SOURCE_ERROR_CHECK(imgCopyMat,src);
+	DESTINATION_ERROR_CHECK(imgCopyMat,dst);
+	#endif
+	
+	if((dst->height != src->height)||(dst->width !=src->width)||(dst->type != src->type))
+		imgMatRedefine(dst,src->height,src->width,src->type);
 
+	int size;
+	size = 1<<((src->type)&0x06);
+	
 	int n;
-	n = (src->step)*(src->height)/4;
+	n = (src->step)*(src->height)*size;
 
 	int *p_src;
 	p_src = src->data.i;
@@ -470,45 +549,102 @@ void imgCopyMat(ImgMat *src,ImgMat *dst)
 	int *p_dst;
 	p_dst = dst->data.i;
 
-	int i;
-	for(i=0;i<n;i++)
+	copy_mat_data(p_src,p_dst,n);
+}
+
+void clean_mat_data(void *p_src,int n)
+{
+	#ifdef DEBUG
+	if(p_src == NULL)
 	{
-		*p_dst=*p_src;
-		p_src = p_src+1;
-		p_dst = p_dst+1;
+		printf("IMG Error:\n\tin imgCleanMat.\n");
+		exit(0);
+	}		
+	#endif
+	
+	if(n == 0)
+		return;
+	
+	int *src_data;
+	src_data = (int *)p_src;
+	
+	int size;
+	size = (n>>6);
+	
+	int i;
+	for(i=0;i<size;i++)
+	{
+		src_data[0] = 0;
+		src_data[1] = 0;
+		src_data[2] = 0;
+		src_data[3] = 0;
+		src_data[4] = 0;
+		src_data[5] = 0;
+		src_data[6] = 0;
+		src_data[7] = 0;
+		src_data[8] = 0;
+		src_data[9] = 0;
+		src_data[10] = 0;
+		src_data[11] = 0;
+		src_data[12] = 0;
+		src_data[13] = 0;
+		src_data[14] = 0;
+		src_data[15] = 0;
+		
+		src_data = src_data+16;
+	}
+	
+	size = ((n>>2)-size*16);
+	
+	if(size !=0)
+	{
+		for(i=0;i<size;i++)
+		{
+			src_data[0] = 0;
+			src_data = src_data+1;
+		}
+	}
+	
+	size = n&0x03;
+	if(size !=0)
+	{
+		char *psrc;
+		psrc = (char *)p_src;
+		
+		for(i=0;i<size;i++)
+		{
+			*psrc = 0;
+			psrc++;
+		}
 	}
 }
 
-
-	
-
-
-
-
 void imgCleanMat(ImgMat *src)
 {
+	#ifdef DEBUG
+	SOURCE_ERROR_CHECK(imgCleanMat,src);
+	#endif
+	
+	int size;
+	size = 1<<((src->type)&0x06);
+	
 	int img_size;
-	img_size = src->width*src->height;
+	img_size = src->width*src->height*size;
 	
 	unsigned char *p_src;
 	p_src = src->data.ptr;
 	
-	int type;
-	type = src->type&0x07;
+	// int type;
+	// type = src->type&0x07;
 
-	if((type==TYPE_16U)||(type == TYPE_16S))
-		img_size = img_size*2;
-	else if((type==TYPE_32S)||(type == TYPE_32F))
-		img_size = img_size*4;
-	else if(type == TYPE_64F)
-		img_size = img_size*8;
+	// if((type==TYPE_16U)||(type == TYPE_16S))
+		// img_size = img_size*2;
+	// else if((type==TYPE_32S)||(type == TYPE_32F))
+		// img_size = img_size*4;
+	// else if(type == TYPE_64F)
+		// img_size = img_size*8;
 			
-	int i;
-	for(i=0;i<img_size;i++)
-	{
-		*p_src = 0;
-		p_src = p_src+1;
-	}
+	clean_mat_data(p_src,img_size);
 }
 
 int imgCompareMat(void *mat1,void *mat2)
@@ -577,310 +713,6 @@ int imgCompareMat(void *mat1,void *mat2)
 	return 0;
 }
 	
-
-struct bmpheader
-{
-	int bmpsize;	
-	int bmpreserved;	
-	int bmpoffbits;	
-	
-	int imginfosize;	
-	int imgwidth;		
-	int imgheight;	
-	short imgplanes;	
-	short imgbitcount;	
-	int imgcompression;	
-	int imgsize;		
-	int imgxpelspermeter;	
-	int imgypelspermeter;
-	int imgclrused;	
-	int imgclrimportant;
-};
-
-
-struct colorlist
-{
-	unsigned char color_blue;
-	unsigned char color_green;
-	unsigned char color_red;
-	char reserved;
-};
-
-int imgSaveGrayBMP(ImgMat *src,char *filename)
-{
-#ifdef DEBUG
-	if(src->type != TYPE_8UC1)
-	{
-		printf("IMG Error:\n\tin imgSaveGrayBMP: Wrong src format\n");
-		return 1;
-	}
-#endif
-
-	FILE *f;
-	f = fopen(filename,"wb");
-
-
-	if(f == NULL)
-	{
-		printf("IMG Error:\n\tin imgSaveGrayBMP: save image error\n");
-		return 1;
-	}
-		
-	int img_width;
-	img_width = *(src->hidinfo + 5);
-	
-	int img_height;
-	img_height = *(src->hidinfo + 6);
-
-	int data_width;
-	data_width = ((img_width-1)&0xFFFFFFFC)+4;
-	
-	int img_size = img_height*data_width;
-	
-	int i;
- 
-	short bmptype = 0x4d42;
-		
-	fseek(f,0,SEEK_SET);
-	fwrite(&bmptype,1,2,f);
-// printf("%s\n",filename);
-	struct bmpheader my_bmp;
-	
-	my_bmp.bmpsize = 1078 + img_size;
-	my_bmp.bmpreserved = 0;
-	my_bmp.bmpoffbits = 1078;
-	my_bmp.imginfosize = 40;
-	my_bmp.imgwidth = img_width;
-	my_bmp.imgheight = img_height;
-	my_bmp.imgplanes = 1;
-	my_bmp.imgbitcount = 8;
-	my_bmp.imgcompression =0;
-	my_bmp.imgsize = img_size;
-	my_bmp.imgxpelspermeter = 11811;
-	my_bmp.imgypelspermeter = 11811;
-	my_bmp.imgclrused = 0;
-	my_bmp.imgclrimportant = 0;
-	
-	
-	
-	// fseek(f,2,SEEK_SET);
-	fwrite(&my_bmp,1,52,f);
-	
-	struct colorlist color_gray[256];
-	for(i=0;i<256;i++)
-	{
-		color_gray[i].color_blue = (unsigned char)i;
-		color_gray[i].color_green = (unsigned char)i;
-		color_gray[i].color_red = (unsigned char)i;
-		color_gray[i].reserved = 0;
-	}
-	
-	// fseek(f,54,SEEK_SET);
-	fwrite(color_gray,1,1024,f);
-
-	unsigned char *data;
-	
-	int data0 = 0;
-	
-	// fseek(f,1078,SEEK_SET);	
-	
-	if(data_width==img_width)
-	{
-		for(i=img_height-1;i>=0;i--)
-		{
-			data = src->data.ptr + i*(src->step);			
-			fwrite(data,1,img_width,f);				
-		}
-	}
-	else
-	{
-		for(i=img_height-1;i>=0;i--)
-		{
-			data = src->data.ptr + i*(src->step);
-			fwrite(data,1,img_width,f);				
-			fwrite(&data0,1,data_width-img_width,f);
-		}
-	}	
-	
-	fclose(f);
-	
-	return 0;
-}
-	
-int imgSaveBMP(ImgMat *src,char *filename)
-{
-	
-	if((src->type == TYPE_8UC1)||(src->type == TYPE_8SC1))
-	{
-		imgSaveGrayBMP(src,filename);
-		return 0;
-	}
-	
-#ifdef DEBUG
-	if(src->type != TYPE_8UC3)
-	{
-		printf("QY Error:\n\tin imgSaveBMP: Wrong src format\n");
-		return 1;
-	}
-#endif
-
-	FILE *f;
-	f = fopen(filename,"wb");
-
-#ifdef DEBUG	
-	if(f == NULL)
-	{
-		printf("QY Error:\n\tin imgSaveBMP: save image error\n");
-		return 1;
-	}
-#endif
-
-	int img_width;
-	img_width = *(src->hidinfo + 5);
-	
-	int img_height;
-	img_height = *(src->hidinfo + 6);
-	
-	int data_width;
-	data_width = ((img_width*3-1)&0xFFFFFFFC)+4;
-
-	int img_size = data_width * img_height;
-
-	int i;
-	 
-	short bmptype = 0x4d42;
-		
-	fseek(f,0,SEEK_SET);
-	fwrite(&bmptype,1,2,f);
-
-	struct bmpheader my_bmp;
-	
-	my_bmp.bmpsize = 54 + img_size;
-	my_bmp.bmpreserved = 0;
-	my_bmp.bmpoffbits = 54;
-	my_bmp.imginfosize = 40;
-	my_bmp.imgwidth = img_width;
-	my_bmp.imgheight = img_height;
-	my_bmp.imgplanes = 1;
-	my_bmp.imgbitcount = 24;
-	my_bmp.imgcompression =0;
-	my_bmp.imgsize = img_size;
-	my_bmp.imgxpelspermeter = 11811;
-	my_bmp.imgypelspermeter = 11811;
-	my_bmp.imgclrused = 0;
-	my_bmp.imgclrimportant = 0;
-	
-	// fseek(f,2,SEEK_SET);
-	fwrite(&my_bmp,1,52,f);
-
-	unsigned char *data;
-
-	int pos = 54;
-	
-	int data0[3] = {0,0,0};
-	
-	// fseek(f,54,SEEK_SET);
-	
-	if(data_width==img_width)
-	{		
-		for(i=img_height-1;i>=0;i--)
-		{			
-			data = src->data.ptr + i*(src->step);			
-			fwrite(data,1,img_width*3,f);			
-		}
-	}
-	else
-	{		
-		for(i=img_height-1;i>=0;i--)
-		{			
-			data = src->data.ptr + i*(src->step);			
-			fwrite(data,1,img_width*3,f);			
-			fwrite(data0,1,data_width-img_width*3,f);				
-		}
-	}
-	
-	fclose(f);
-	
-	return 0;
-}
-
-
-int imgReadBMP(const char *filename,ImgMat *dst)
-{
-	FILE *f;
-	f = fopen(filename,"rb");
-	if(f == NULL)
-	{
-		printf("read image error\n");
-		return 1;
-	}
- 
-	short filetype;
-		
-	fseek(f,0,SEEK_SET);
-	fread(&filetype,1,2,f);
-	
-	if(filetype != 0x4d42)
-	{
-		printf("read image error\n");
-		return 1;
-	}
-	
-	struct bmpheader my_bmp;
-	
-	fseek(f,2,SEEK_SET);
-	fread(&my_bmp,1,52,f);
-	
-	int img_width;
-	img_width = my_bmp.imgwidth;
-	
-	int img_height;
-	img_height = my_bmp.imgheight;
-	
-	int cn;
-	cn = my_bmp.imgbitcount>>3;
-	
-	int data_width;
-	data_width = ((img_width*cn-1)&0xFFFFFFFC)+4;
-	
-	int type;
-	type = ((cn-1)<<3);
-	// type = dst->type;
-	
-	imgInitializeMatHeader(dst,img_height,img_width,type);
-	
-	if((dst->data.ptr != NULL))
-		free(dst->data.ptr);
-	
-	imgCreateMatData(dst);
-		
-	int mat_width;
-	mat_width = dst->width;
-	
-	int i;
-	
-	int pos;
-	pos = my_bmp.bmpoffbits;
-	
-	unsigned char *data;
-	
-	int data0=0;
-	
-	for(i=img_height-1;i>=0;i--)
-	{
-		data = dst->data.ptr + i*img_width*cn;
-		
-		fseek(f,pos,SEEK_SET);
-		fread(data,1,img_width*cn,f);
-				
-		pos = pos+data_width;
-	}
- 
-	fclose(f);
-	
-	return 0;
-
-} 
 
 int imgGetMatData(ImgMat *src,int x,int y)
 {
@@ -1094,8 +926,7 @@ int imgWriteBinaryStream(ImgMat *src,const char *filename)
 	}
  
 	fclose(f);
-	return 0;	 
-	
+	return 0;		
 }
 
 

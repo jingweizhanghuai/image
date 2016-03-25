@@ -25,8 +25,12 @@ void imgColorToGray(ImgMat *src,ImgMat *dst)
 	int img_size;
 	img_size = src->width*src->height;	
 	
-	unsigned char *p_src;
-	p_src = src->data.ptr;
+	unsigned char *p_src0;
+	p_src0 = src->data.ptr;
+	unsigned char *p_src1;
+	p_src1 = p_src0+img_size;
+	unsigned char *p_src2;
+	p_src2 = p_src1+img_size;
 	
 	unsigned char *p_dst;
 	p_dst = dst->data.ptr;
@@ -35,9 +39,11 @@ void imgColorToGray(ImgMat *src,ImgMat *dst)
 	
 	for(i=0;i<img_size;i++)
 	{
-		*p_dst = (p_src[0]*29+p_src[1]*150+p_src[2]*77+128)>>8;
+		*p_dst = ((*p_src0)*29+(*p_src1)*150+(*p_src2)*77+128)>>8;
 		p_dst = p_dst+1;
-		p_src = p_src+cn;
+		p_src0 = p_src0+1;
+		p_src1 = p_src1+1;
+		p_src2 = p_src2+1;
 	}
 }
 
