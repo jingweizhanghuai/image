@@ -2,8 +2,14 @@
 #include "type.h"
 #include "err.h"
 
-#define SRC(x,y,c) p_src[(y)*img_width*cn + (x)*cn+c]
-#define DST(x,y,c) p_dst[(y)*dst_width*cn + (x)*cn+c]
+#define PTR(mat) {\
+	p##mat[0] = p_##mat;\
+	for(i=1;i<mat->height;i++)\
+		p##mat[i] = p##mat[i-1]+mat->width;\
+}\
+
+#define SRC(x,y) *(psrc[y]+(x))
+#define DST(x,y) *(pdst[y]+(x))
 
 ImgMat *imgCreateMat(int height,int width,char type);
 void imgReleaseMatData(ImgMat *src);
@@ -51,124 +57,79 @@ void imgCrop(ImgMat *src,ImgMat *dst,ImgRect *rect)//Point point1,ImgPoint point
 	int cn;
 	cn = ((src->type&0xF8)>>3)+1;
 	
-	int i,j;
+	int i,j,k;
+	
+	unsigned char **psrc;
+	psrc = malloc(img_height<<2);
+	unsigned char **pdst;	
+	pdst = malloc(img_height<<2);
 	
 	// printf("cn is %d\n",cn);
 	// printf("dst_height is %d\n",dst_height);
 	
 	if((p1x>0)&&(p1y>0)&&(p2x<img_width)&&(p2y<img_height))
 	{
-		if(cn == 1)
-		{	
-			for(j=0;j<dst_height;j++)
-				for(i=0;i<dst_width;i++)
-					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
-		}
-		else if(cn == 3)
+		for(k=0;k<cn;k++)
 		{
+			PTR(src);
+			PTR(dst);
 			for(j=0;j<dst_height;j++)
 				for(i=0;i<dst_width;i++)
-				{
-					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
-					DST(i,j,1) = SRC(i+p1x,j+p1y,1);
-					DST(i,j,2) = SRC(i+p1x,j+p1y,2);
-				}
+					DST(i,j) = SRC(i+p1x,j+p1y);
+			
+			p_src = p_src+src->size;
+			p_dst = p_dst+dst->size;			
 		}
 	}
 	else
 	{
-		if(cn == 1)
+		for(k=0;k<cn;k++)
 		{
+			PTR(src);
+			PTR(dst);
+			
+			j=0;
 			while(j+p1y<0)
 			{
 				for(i=0;i<dst_width;i++)
-					DST(i,j,0) = 0;
+					DST(i,j) = 0;
 				
 				j=j+1;
-			}
+			}		
 			
 			while((j+p1y<img_height)&&(j<dst_height))
 			{
+				i=0;
 				while(i+p1x<0)
 				{
-					DST(i,j,0) = 0;
+					DST(i,j) = 0;
 					i = i+1;
 				}
-				
+
 				while((i+p1x<img_width)&&(i<dst_width))
 				{
-					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
+					DST(i,j) = SRC(i+p1x,j+p1y);
 					i = i+1;
 				}
 				
 				while(i<dst_width)
 				{
-					DST(i,j,0) = 0;
+					DST(i,j) = 0;
 					i = i+1;
 				}
+				j=j+1;
 			}
 			
 			while(j<dst_height)
 			{
 				for(i=0;i<dst_width;i++)
-					DST(i,j,0) = 0;
-				
-				j=j+1;
-			}
-		}
-		
-		if(cn == 3)
-		{
-			while(j+p1y<0)
-			{
-				for(i=0;i<dst_width;i++)
-				{
-					DST(i,j,0) = 0;
-					DST(i,j,1) = 0;
-					DST(i,j,2) = 0;
-				}
+					DST(i,j) = 0;
 				
 				j=j+1;
 			}
 			
-			while((j+p1y<img_height)&&(j<dst_height))
-			{
-				while(i+p1x<0)
-				{
-					DST(i,j,0) = 0;
-					DST(i,j,1) = 0;
-					DST(i,j,2) = 0;
-					i = i+1;
-				}
-				
-				while((i+p1x<img_width)&&(i<dst_width))
-				{
-					DST(i,j,0) = SRC(i+p1x,j+p1y,0);
-					DST(i,j,1) = SRC(i+p1x,j+p1y,1);
-					DST(i,j,2) = SRC(i+p1x,j+p1y,2);
-					i = i+1;
-				}
-				
-				while(i<dst_width)
-				{
-					DST(i,j,0) = 0;
-					DST(i,j,1) = 0;
-					DST(i,j,2) = 0;
-					i = i+1;
-				}
-			}
-			
-			while(j<dst_height)
-			{
-				for(i=0;i<dst_width;i++)
-				{
-					DST(i,j,0) = 0;
-					DST(i,j,1) = 0;
-					DST(i,j,2) = 0;
-				}
-				
-				j=j+1;
-			}
+			p_src = p_src+src->size;
+			p_dst = p_dst+dst->size;	
 		}
 	}
 }

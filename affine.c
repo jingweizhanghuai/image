@@ -133,7 +133,11 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 						(float)point_d[1].x,(float)point_d[1].y,1.0,0.0-point_s[1].x,
 						(float)point_d[2].x,(float)point_d[2].y,1.0,0.0-point_s[2].x};	
 	
-	imgLinearEquation(data1,answer,3);
+	if(imgLinearEquation(data1,answer,3)==0)
+	{
+		printf("IMG Error\n\tin imgAffine:points given is wrong.\n");
+		exit(0);
+	}
 	
 	float k1,k2,b1;
 	k1 = answer[0];
@@ -144,7 +148,11 @@ void imgAffine(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 						(float)point_d[1].x,(float)point_d[1].y,1.0,0.0-point_s[1].y,
 						(float)point_d[2].x,(float)point_d[2].y,1.0,0.0-point_s[2].y};
 						
-	imgLinearEquation(data2,answer,3);
+	if(imgLinearEquation(data2,answer,3)==0)
+	{
+		printf("IMG Error\n\tin imgAffine:points given is wrong.\n");
+		exit(0);
+	}
 	
 	float k3,k4,b2;
 	k3 = answer[0];

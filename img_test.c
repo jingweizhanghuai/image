@@ -21,15 +21,23 @@ int main()
 	
 	// imgThreshold(src,,3,&threshold);
 	
-	ImgPoint pd[3];
-	pd[0].x = 100;
-	pd[0].y = 200;
-	pd[1].x = 500;
-	pd[1].y = 50;
-	pd[2].x = 50;
-	pd[2].y = 550;
+	// ImgPoint pd[3];
+	// pd[0].x = 100;
+	// pd[0].y = 200;
+	// pd[1].x = 500;
+	// pd[1].y = 50;
+	// pd[2].x = 50;
+	// pd[2].y = 550;
+	// pd[3].x = 550;
+	// pd[3].y = 500;
 	
-	imgRotate(src,,60);
-		
+	ImgRect rect;
+	rect.x = -100;
+	rect.y = -150;
+	rect.width = 900;
+	rect.height = 800;
+	
+	imgCrop(src,,&rect);
+	
 	imgSaveBMP(src,"./test_image/test2.bmp");
 }

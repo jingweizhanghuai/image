@@ -2,38 +2,49 @@
 #include "type.h"
 #include "err.h"
 
-#define SRC_PTR {\
-	p_src = malloc((src->height)<<2);\
-	p_src[0] = src->data.ptr;\
-	for(i=1;i<src->height;i++)\
-		p_src[i] = p_src[i-1]+src->step;\
+#define PTR(mat) {\
+	p0##mat = malloc((mat->height)<<2);\
+	p0##mat[0] = mat->data.ptr;\
+	for(i=1;i<mat->height;i++)\
+		p0##mat[i] = p0##mat[i-1]+mat->width;\
+	if(cn>1)\
+	{\
+		p1##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p1##mat[i] = p0##mat[i]+mat->size;\
+	}\
+	if(cn>2)\
+	{\
+		p2##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p2##mat[i] = p1##mat[i]+mat->size;\
+	}\
+	if(cn>3)\
+	{\
+		p3##mat = malloc((mat->height)<<2);\
+		for(i=0;i<mat->height;i++)\
+			p3##mat[i] = p2##mat[i]+mat->size;\
+	}\
 }\
 
-#define DST_PTR {\
-	p_dst = malloc((dst->height)<<2);\
-	p_dst[0] = dst->data.ptr;\
-	for(i=1;i<dst->height;i++)\
-		p_dst[i] = p_dst[i-1]+dst->step;\
+#define SRC_0(x,y) *(p0src[y]+(x))
+#define DST_0(x,y) *(p0dst[y]+(x))
+#define SRC_1(x,y) *(p1src[y]+(x))
+#define DST_1(x,y) *(p1dst[y]+(x))
+#define SRC_2(x,y) *(p2src[y]+(x))
+#define DST_2(x,y) *(p2dst[y]+(x))
+#define SRC_3(x,y) *(p3src[y]+(x))
+#define DST_3(x,y) *(p3dst[y]+(x))
+
+#define PTR_FREE(mat) {\
+	free(p0##mat);\
+	if(cn>1)\
+		free(p1##mat);\
+	if(cn>2)\
+		free(p2##mat);\
+	if(cn>3)\
+		free(p3##mat);\
 }\
-
-#define SRC(x,y) *(p_src[y]+(x))
-#define DST(x,y) *(p_dst[y]+(x))
-
-#define SRC3_0(x,y) *(p_src[y]+(x)+(x)+(x))
-#define DST3_0(x,y) *(p_dst[y]+(x)+(x)+(x))
-#define SRC3_1(x,y) *(p_src[y]+(x)+(x)+(x)+1)
-#define DST3_1(x,y) *(p_dst[y]+(x)+(x)+(x)+1)
-#define SRC3_2(x,y) *(p_src[y]+(x)+(x)+(x)+2)
-#define DST3_2(x,y) *(p_dst[y]+(x)+(x)+(x)+2)
-
-#define SRC4_0(x,y) *(p_src[y]+(x)+(x)+(x)+(x))
-#define DST4_0(x,y) *(p_dst[y]+(x)+(x)+(x)+(x))
-#define SRC4_1(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+1)
-#define DST4_1(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+1)
-#define SRC4_2(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+2)
-#define DST4_2(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+2)
-#define SRC4_3(x,y) *(p_src[y]+(x)+(x)+(x)+(x)+3)
-#define DST4_3(x,y) *(p_dst[y]+(x)+(x)+(x)+(x)+3)
 
 void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 {
@@ -62,6 +73,9 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	
 	if(dst->type != src->type)
 		imgMatRedefine(dst,dst_height,dst_width,src->type);
+	
+	int cn;
+	cn = ((src->type)>>3)+1;
 	
 	int i,j;
 	
@@ -105,11 +119,17 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 		n[3] = (float)pd[3].y;
 	}
 	
-	unsigned char **p_src;
-	SRC_PTR;
+	unsigned char **p0src;
+	unsigned char **p1src;
+	unsigned char **p2src;
+	unsigned char **p3src;
+	PTR(src);
 	
-	unsigned char **p_dst;
-	DST_PTR;
+	unsigned char **p0dst;
+	unsigned char **p1dst;
+	unsigned char **p2dst;
+	unsigned char **p3dst;
+	PTR(dst);
 	
 	float answer[8];
 	
@@ -164,9 +184,6 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	float w1,w2,w3,w4;
 	float u_1,u_2,v_1,v_2;
 	
-	int cn;
-	cn = ((src->type)>>3)+1;
-	
 	if(cn==1)
 	{
 		for(j=0;j<dst_height;j++)
@@ -183,6 +200,18 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				
 				u = u_1/u_2;
 				v = v_1/v_2;
+				
+				if((u>=(src_width-1))||(u<0)||(v>=(src_height-1))||(v<0))
+				{
+					DST_0(i,j) = 0;
+					
+					u_1 = u_1+answer[0];
+					u_2 = u_2+answer[4];
+					v_1 = v_1+answer[2];
+					v_2 = v_2+answer[4];
+					
+					continue;
+				}
 		
 				x1 = (int)u;
 				x2 = x1+1;
@@ -197,7 +226,7 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				w3 = wx*wy;
 				w4 = (1-wx)*wy;
 				
-				DST(i,j) =(int)((float)SRC(x1,y1)*w1+(float)SRC(x2,y1)*w2+(float)SRC(x2,y2)*w3+(float)SRC(x1,y2)*w4);
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
 				
 				u_1 = u_1+answer[0];
 				u_2 = u_2+answer[4];
@@ -219,6 +248,18 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			{
 				u = u_1/u_2;
 				v = v_1/v_2;
+				
+				if((u>=(src_width-1))||(u<0)||(v>=(src_height-1))||(v<0))
+				{
+					DST_0(i,j) = 0;
+					
+					u_1 = u_1+answer[0];
+					u_2 = u_2+answer[4];
+					v_1 = v_1+answer[2];
+					v_2 = v_2+answer[4];
+					
+					continue;
+				}
 		
 				x1 = (int)u;
 				x2 = x1+1;
@@ -233,9 +274,9 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				w3 = wx*wy;
 				w4 = (1-wx)*wy;
 				
-				DST3_0(i,j) =(int)((float)SRC3_0(x1,y1)*w1+(float)SRC3_0(x2,y1)*w2+(float)SRC3_0(x2,y2)*w3+(float)SRC3_0(x1,y2)*w4);
-				DST3_1(i,j) =(int)((float)SRC3_1(x1,y1)*w1+(float)SRC3_1(x2,y1)*w2+(float)SRC3_1(x2,y2)*w3+(float)SRC3_1(x1,y2)*w4);
-				DST3_2(i,j) =(int)((float)SRC3_2(x1,y1)*w1+(float)SRC3_2(x2,y1)*w2+(float)SRC3_2(x2,y2)*w3+(float)SRC3_2(x1,y2)*w4);
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
+				DST_1(i,j) =(int)((float)SRC_1(x1,y1)*w1+(float)SRC_1(x2,y1)*w2+(float)SRC_1(x2,y2)*w3+(float)SRC_1(x1,y2)*w4);
+				DST_2(i,j) =(int)((float)SRC_2(x1,y1)*w1+(float)SRC_2(x2,y1)*w2+(float)SRC_2(x2,y2)*w3+(float)SRC_2(x1,y2)*w4);
 				
 				u_1 = u_1+answer[0];
 				u_2 = u_2+answer[4];
@@ -257,6 +298,18 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			{
 				u = u_1/u_2;
 				v = v_1/v_2;
+				
+				if((u>=(src_width-1))||(u<0)||(v>=(src_height-1))||(v<0))
+				{
+					DST_0(i,j) = 0;
+					
+					u_1 = u_1+answer[0];
+					u_2 = u_2+answer[4];
+					v_1 = v_1+answer[2];
+					v_2 = v_2+answer[4];
+					
+					continue;
+				}
 		
 				x1 = (int)u;
 				x2 = x1+1;
@@ -271,10 +324,10 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 				w3 = wx*wy;
 				w4 = (1-wx)*wy;
 				
-				DST4_0(i,j) =(int)((float)SRC4_0(x1,y1)*w1+(float)SRC4_0(x2,y1)*w2+(float)SRC4_0(x2,y2)*w3+(float)SRC4_0(x1,y2)*w4);
-				DST4_1(i,j) =(int)((float)SRC4_1(x1,y1)*w1+(float)SRC4_1(x2,y1)*w2+(float)SRC4_1(x2,y2)*w3+(float)SRC4_1(x1,y2)*w4);
-				DST4_2(i,j) =(int)((float)SRC4_2(x1,y1)*w1+(float)SRC4_2(x2,y1)*w2+(float)SRC4_2(x2,y2)*w3+(float)SRC4_2(x1,y2)*w4);
-				DST4_3(i,j) =(int)((float)SRC4_3(x1,y1)*w1+(float)SRC4_3(x2,y1)*w2+(float)SRC4_3(x2,y2)*w3+(float)SRC4_3(x1,y2)*w4);
+				DST_0(i,j) =(int)((float)SRC_0(x1,y1)*w1+(float)SRC_0(x2,y1)*w2+(float)SRC_0(x2,y2)*w3+(float)SRC_0(x1,y2)*w4);
+				DST_1(i,j) =(int)((float)SRC_1(x1,y1)*w1+(float)SRC_1(x2,y1)*w2+(float)SRC_1(x2,y2)*w3+(float)SRC_1(x1,y2)*w4);
+				DST_2(i,j) =(int)((float)SRC_2(x1,y1)*w1+(float)SRC_2(x2,y1)*w2+(float)SRC_2(x2,y2)*w3+(float)SRC_2(x1,y2)*w4);
+				DST_3(i,j) =(int)((float)SRC_3(x1,y1)*w1+(float)SRC_3(x2,y1)*w2+(float)SRC_3(x2,y2)*w3+(float)SRC_3(x1,y2)*w4);
 				
 				u_1 = u_1+answer[0];
 				u_2 = u_2+answer[4];
@@ -283,8 +336,8 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 			}
 		}
 	}	
-	free(p_src);
-	free(p_dst);
+	PTR_FREE(src);
+	PTR_FREE(dst);
 }
 
 ImgMat *imgCreateMat(int height,int width,char type);
