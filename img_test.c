@@ -7,7 +7,9 @@ int main()
 	ImgMat *src;
 	src = imgNewMatHeader();
 	
-	imgReadBMP("./test_image/test_gray.bmp",src);
+	imgReadJPG("./test_image/test_gray.jpg",src);
+	
+	
 	
 	// imgColorToGray(src,);
 	
@@ -39,5 +41,5 @@ int main()
 	
 	// imgCrop(src,,&rect);
 	
-	imgSaveJPG_8(src,"./test_image/test2.jpg");
+	imgSaveBMP(src,"./test_image/test2_gray.bmp");
 }
