@@ -451,6 +451,9 @@ void imgMateMat(ImgMat *src,int size_height,int size_width,int type)
 
 void copy_mat_data(void *p_src,void *p_dst,int n)
 {
+	if(n == 0)
+		return;
+	
 	#ifdef DEBUG
 	if((p_src == NULL)||(p_dst == NULL))
 	{
@@ -458,11 +461,6 @@ void copy_mat_data(void *p_src,void *p_dst,int n)
 		exit(0);
 	}		
 	#endif
-	
-	printf("sssssssssssssssssssn is %d\n",n);
-	
-	if(n == 0)
-		return;
 	
 	int *src_data;
 	src_data = (int *)p_src;
@@ -540,8 +538,11 @@ void imgCopyMat(ImgMat *src,ImgMat *dst)
 	int size;
 	size = 1<<((src->type)&0x06);
 	
+	int cn;
+	cn = ((src->type)>>3)+1;
+	
 	int n;
-	n = (src->step)*(src->height)*size;
+	n = (src->size)*size*cn;
 
 	int *p_src;
 	p_src = src->data.i;
