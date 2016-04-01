@@ -47,7 +47,7 @@
 #define SRC_3(x,y) *(p3src[y]+(x))
 #define DST_3(x,y) *(p3dst[y]+(x))
 
-#define ABS(x) (((x)>0)?(x):(1-(x)))
+#define ABS(x) (((x)>0)?(x):(0-(x)))
 
 void imgFilter_gray(ImgMat *src,ImgMat *dst,int r,int thresh)
 {

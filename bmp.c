@@ -8,7 +8,7 @@ struct bmpheader
 	int bmpreserved;	
 	int bmpoffbits;	
 	
-	int imginfosize;	
+	int imginfosize;
 	int imgwidth;		
 	int imgheight;	
 	short imgplanes;	
@@ -41,7 +41,6 @@ int imgSaveBMP_8(ImgMat *src,char *filename)
 
 	FILE *f;
 	f = fopen(filename,"wb");
-
 
 	if(f == NULL)
 	{
@@ -308,12 +307,12 @@ int imgSaveBMP_32(ImgMat *src,char *filename)
 	my_bmp.imgxpelspermeter = 11811;
 	my_bmp.imgypelspermeter = 11811;
 	my_bmp.imgclrused = 0;
-	my_bmp.imgclrimportant = 0;
+	my_bmp.imgclrimportant = 1;
 	
 	// fseek(f,2,SEEK_SET);
 	fwrite(&my_bmp,1,52,f);
 	
-	int buff[4];
+	unsigned char buff[4];
 	
 	for(j=img_height-1;j>=0;j--)
 	{
@@ -327,8 +326,9 @@ int imgSaveBMP_32(ImgMat *src,char *filename)
 			buff[0] = *p_src0;
 			buff[1] = *p_src1;
 			buff[2] = *p_src2;
-			buff[3] = *p_src3;		
+			buff[3] = *p_src3;				
 			fwrite(buff,1,4,f);
+			
 			p_src0++;
 			p_src1++;
 			p_src2++;
@@ -483,6 +483,7 @@ int imgReadBMP(const char *filename,ImgMat *dst)
 				*p_dst1 = buff[1];
 				*p_dst2 = buff[2];
 				*p_dst3 = buff[3];
+				
 				p_dst0++;
 				p_dst1++;
 				p_dst2++;

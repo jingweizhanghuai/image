@@ -7,10 +7,8 @@ int main()
 	ImgMat *src;
 	src = imgNewMatHeader();
 	
-	imgReadJPG("./test_image/test_gray.jpg",src);
-	
-	
-	
+	imgReadBMP("./test_image/fill.bmp",src);
+
 	// imgColorToGray(src,);
 	
 	// ImgThreshold threshold;
@@ -33,13 +31,27 @@ int main()
 	// pd[3].x = 550;
 	// pd[3].y = 500;
 	
-	ImgRect rect;
-	rect.x = -100;
-	rect.y = -150;
-	rect.width = 900;
-	rect.height = 800;
+	// ImgRect rect;
+	// rect.x = -100;
+	// rect.y = -150;
+	// rect.width = 900;
+	// rect.height = 800;
+	
+	
+	ImgLocate locate;
+	locate.x = 30;
+	locate.y = 30;
+	
+	ImgColor color;
+	color.r = 150;
+	color.g = 50;
+	color.b = 50;
+	
+	imgFill(src,,&locate,&color,);
+	
+	
 	
 	// imgCrop(src,,&rect);
 	
-	imgSaveBMP(src,"./test_image/test2_gray.bmp");
+	imgSaveBMP(src,"./test_image/fill2.bmp");
 }

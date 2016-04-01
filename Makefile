@@ -12,7 +12,7 @@ CPPSOURCES = $(wildcard *.cpp)
 SSOURCES = $(wildcard *.s)
 OBJS = $(patsubst %.c,%.o,$(CPPSOURCES)) $(patsubst %.c,%.o,$(CSOURCES)) $(patsubst %.s,%.o,$(SSOURCES))
 
-LIBS = -ljpeg
+LIBS = -ljpeg -lpng -lz
 
 $(OUTPUT):$(OBJS)
 	$(XX) $(XXFLAGS) $(OBJS) $(LIBS) -o $(OUTPUT) 

@@ -190,17 +190,24 @@ typedef struct ImgVector
 	int y;
 }ImgVector;
 
-typedef struct ImgPoint
-{
-	int x;
-	int y;
-}ImgPoint;
+#define ImgPoint ImgVector
+#define ImgLocate ImgVector
+// typedef struct ImgPoint
+// {
+	// int x;
+	// int y;
+// }ImgPoint;
 
 typedef struct ImgColor
 {
-	int r;
+	union
+	{
+		int r;
+		int gray;
+	};
 	int g;
 	int b;
+	int alpha;
 }ImgColor;
 
 typedef struct ImgDPList
