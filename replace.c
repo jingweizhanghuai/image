@@ -332,6 +332,8 @@ replace_end:
 	imgReleaseMat(flag);
 }
 
+#define DIFF(x1,y1,x2,y2) ABS(SRC_0(x1,y1)-SRC_0(x2,y2))+ABS(SRC_1(x1,y1)-SRC_1(x2,y2))+ABS(SRC_2(x1,y1)-SRC_2(x2,y2))
+
 void imgColorReplace_3(ImgMat *src,ImgMat *dst,ImgLocate *start_locate,ImgColor *replace_color,int thresh)
 {
 	#ifdef DEBUG
@@ -421,11 +423,13 @@ void imgColorReplace_3(ImgMat *src,ImgMat *dst,ImgLocate *start_locate,ImgColor 
 	DST_1(start_x,start_y) = replace_1;
 	DST_2(start_x,start_y) = replace_2;
 	
+	thresh = thresh*3;
+	
 	for(i=start_x+1;i<img_width;i++)
 	{
 		if(FLAG(i-1,start_y)==255)
 		{			
-			if(ABS(SRC_0(i,start_y)-SRC_0(i-1,start_y))<thresh)
+			if(DIFF(i,start_y,i-1,start_y)<thresh)
 			{
 				FLAG(i,start_y) = 255;
 				data = SRC_0(i,start_y) + diff0;
@@ -445,7 +449,7 @@ void imgColorReplace_3(ImgMat *src,ImgMat *dst,ImgLocate *start_locate,ImgColor 
 	for(i=start_x-1;i>=0;i--)
 	{
 		if(FLAG(i+1,start_y) == 255)
-			if(ABS(SRC_0(i,start_y)-SRC_0(i+1,start_y))<thresh)
+			if(DIFF(i,start_y,i+1,start_y)<thresh)
 			{
 				FLAG(i,start_y) = 255;
 				data = SRC_0(i,start_y) + diff0;
@@ -478,7 +482,7 @@ replace:
 			}			
 			
 			if(FLAG(i-1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i-1,j))<thresh)
+				if(DIFF(i,j,i-1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -496,7 +500,7 @@ replace:
 				}
 
 			if(FLAG(i,j-1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j-1))<thresh)
+				if(DIFF(i,j,i,j-1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -525,7 +529,7 @@ replace:
 			}	
 			
 			if(FLAG(i-1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i-1,j))<thresh)
+				if(DIFF(i,j,i-1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -542,7 +546,7 @@ replace:
 					continue;
 				}
 			if(FLAG(i,j-1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j-1))<thresh)
+				if(DIFF(i,j,i,j-1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -584,7 +588,7 @@ replace:
 			}
 			
 			if(FLAG(i-1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i-1,j))<thresh)
+				if(DIFF(i,j,i-1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -602,7 +606,7 @@ replace:
 				}
 
 			if(FLAG(i,j+1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j+1))<thresh)
+				if(DIFF(i,j,i,j+1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -631,7 +635,7 @@ replace:
 			}
 			
 			if(FLAG(i+1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i+1,j))<thresh)
+				if(DIFF(i,j,i+1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -649,7 +653,7 @@ replace:
 				}
 
 			if(FLAG(i,j+1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j+1))<thresh)
+				if(DIFF(i,j,i,j+1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -782,7 +786,7 @@ void imgColorReplace_4(ImgMat *src,ImgMat *dst,ImgLocate *start_locate,ImgColor 
 	{
 		if(FLAG(i-1,start_y)==255)
 		{			
-			if(ABS(SRC_0(i,start_y)-SRC_0(i-1,start_y))<thresh)
+			if(DIFF(i,start_y,i-1,start_y)<thresh)
 			{
 				FLAG(i,start_y) = 255;
 				data = SRC_0(i,start_y) + diff0;
@@ -803,7 +807,7 @@ void imgColorReplace_4(ImgMat *src,ImgMat *dst,ImgLocate *start_locate,ImgColor 
 	for(i=start_x-1;i>=0;i--)
 	{
 		if(FLAG(i+1,start_y) == 255)
-			if(ABS(SRC_0(i,start_y)-SRC_0(i+1,start_y))<thresh)
+			if(DIFF(i,start_y,i+1,start_y)<thresh)
 			{
 				FLAG(i,start_y) = 255;
 				data = SRC_0(i,start_y) + diff0;
@@ -837,7 +841,7 @@ replace:
 			}			
 			
 			if(FLAG(i-1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i-1,j))<thresh)
+				if(DIFF(i,j,i-1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -856,7 +860,7 @@ replace:
 				}
 
 			if(FLAG(i,j-1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j-1))<thresh)
+				if(DIFF(i,j,i,j-1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -886,7 +890,7 @@ replace:
 			}	
 			
 			if(FLAG(i-1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i-1,j))<thresh)
+				if(DIFF(i,j,i-1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -904,7 +908,7 @@ replace:
 					continue;
 				}
 			if(FLAG(i,j-1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j-1))<thresh)
+				if(DIFF(i,j,i,j-1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -947,7 +951,7 @@ replace:
 			}
 			
 			if(FLAG(i-1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i-1,j))<thresh)
+				if(DIFF(i,j,i-1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -966,7 +970,7 @@ replace:
 				}
 
 			if(FLAG(i,j+1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j+1))<thresh)
+				if(DIFF(i,j,i,j+1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -996,7 +1000,7 @@ replace:
 			}
 			
 			if(FLAG(i+1,j)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i+1,j))<thresh)
+				if(DIFF(i,j,i+1,j)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
@@ -1015,7 +1019,7 @@ replace:
 				}
 
 			if(FLAG(i,j+1)==255)
-				if(ABS(SRC_0(i,j)-SRC_0(i,j+1))<thresh)
+				if(DIFF(i,j,i,j+1)<thresh)
 				{
 					FLAG(i,j) = 255;
 					data = SRC_0(i,j) + diff0;
