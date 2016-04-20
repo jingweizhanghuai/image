@@ -7,19 +7,19 @@ int main()
 	ImgMat *src;
 	src = imgNewMatHeader();
 	
-	imgReadBMP("./test_image/fill.bmp",src);
+	imgReadBMP("./test_image/test.bmp",src);
 
 	// imgColorToGray(src,);
 	
-	// ImgThreshold threshold;
-	// threshold.thresh_num = 2;
-	// threshold.thresh[0] = 100;
+	ImgThreshold threshold;
+	threshold.thresh_num = 1;
+	threshold.thresh[0] = 100;
 	// threshold.thresh[1] = 150;
-	// threshold.value[0] = 0;
-	// threshold.value[1] = NOT_CHANGE_WITH_THRESHOLD;
+	threshold.value[0] = 255;
+	threshold.value[1] = 150;//NOT_CHANGE_WITH_THRESHOLD;
 	// threshold.value[2] = 255;
 	
-	// imgThreshold(src,,3,&threshold);
+	// imgThreshold(src,,1,&threshold);
 	
 	// ImgPoint pd[3];
 	// pd[0].x = 100;
@@ -37,21 +37,40 @@ int main()
 	// rect.width = 900;
 	// rect.height = 800;
 	
+	// ImgLocate locate;
+	// locate.x = 30;
+	// locate.y = 30;
 	
-	ImgLocate locate;
-	locate.x = 30;
-	locate.y = 30;
+	// ImgColor color;
+	// color.r = 150;
+	// color.g = 50;
+	// color.b = 50;
 	
-	ImgColor color;
-	color.r = 150;
-	color.g = 50;
-	color.b = 50;
+	// imgFill(src,,&locate,&color,8);
 	
-	imgFill(src,,&locate,&color,);
+	ImgMat *dst;
+	dst = imgCreateMat(src->height,src->width,src->type);
 	
-	
+	int i;
 	
 	// imgCrop(src,,&rect);
+
+	// TIME_START;
+	// for(i=0;i<5000;i++)
+	// {
+		// imgMeanFilter(src,dst,5);
+	// }
+
+	TIME_START;
+	for(i=0;i<5000;i++)
+	{
+		imgMeanFilter_cl(src,dst,5);
+	}
+		
+	imgSaveBMP(dst,"./test_image/test5.bmp");
+	imgReleaseMat(dst);
+	imgReleaseMat(src);
 	
-	imgSaveBMP(src,"./test_image/fill2.bmp");
+	imgOCLFinish();
+	TIME_STOP;
 }

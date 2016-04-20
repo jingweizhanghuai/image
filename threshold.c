@@ -39,9 +39,12 @@ void imgThreshold(ImgMat *src,ImgMat *dst,int cn,ImgThreshold *threshold)//int *
 		thresh[k+1] = threshold->thresh[k];
 	}
 	value[k] = threshold->value[k];
-	thresh[k+1] = 255;
+	thresh[k+1] = 256;
 	
 	int data;
+	
+	printf("thresh[0] is %d\n",thresh[0]);
+	printf("value is %d,%d\n",value[0],value[1]);
 	
 	for(j=0;j<type_cn;j++)
 	{
@@ -54,7 +57,7 @@ void imgThreshold(ImgMat *src,ImgMat *dst,int cn,ImgThreshold *threshold)//int *
 				data = p_src[i];
 		
 				for(k=0;k<thresh_num+1;k++)
-					if((data>thresh[k])&&(data<=thresh[k+1]))
+					if((data>=thresh[k])&&(data<thresh[k+1]))
 					{
 						if(value[k] == NOT_CHANGE_WITH_THRESHOLD)
 							p_dst[i] = data;

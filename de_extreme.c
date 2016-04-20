@@ -93,7 +93,7 @@ void imgDeExtreme(ImgMat *src,ImgMat *dst)
 {
 	#ifdef DEBUG
 	SOURCE_ERROR_CHECK(imgDeExtreme,src);
-	DESTINATION_ERROR_CHECK(imgDeExtreme,lf);
+	DESTINATION_ERROR_CHECK(imgDeExtreme,dst);
 	#endif
 	
 	int img_height;

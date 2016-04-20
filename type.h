@@ -1,5 +1,7 @@
 #include <malloc.h>
 
+#define DEBUG
+
 #define TYPE_8U	 0
 #define TYPE_8S	 1
 #define TYPE_16U	2
@@ -52,22 +54,19 @@
 typedef struct ImgMat
 {
 	int type;
-	int step;
 
-		/* for internal use only */
+	/* for internal use only */
 	int* hidinfo;
-		/*0:mat_address*/
-		/*1:free_valid*/
-		/*2:orign_width*/
-		/*3:orign_height*/
-		/*4:type*/
-		/*5:width*/
-		/*6:height*/
-		/*7:data*/
-		/*8:cn*/
-		/*9:depth*/
-		
-	int hdr_refcount;
+	/*0:mat_address*/
+	/*1:free_valid*/
+	/*2:orign_width*/
+	/*3:orign_height*/
+	/*4:type*/
+	/*5:width*/
+	/*6:height*/
+	/*7:data*/
+	/*8:cn*/
+	/*9:depth*/
 
 	union
 	{
@@ -90,11 +89,11 @@ typedef struct ImgMat
 		int width;
 	};
 	
-	int cn;
-	
-	int depth;
-	
+	int cn;	
 	int size;
+	
+	void *memory[5];	
+	int memory_valid[5];
 	
 }ImgMat;
 

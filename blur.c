@@ -5,14 +5,14 @@
 	p_src = malloc(img_height<<2);\
 	p_src[0] = src->data.ptr;\
 	for(i=1;i<img_height;i++)\
-		p_src[i] = p_src[i-1]+src->step;\
+		p_src[i] = p_src[i-1]+src->width;\
 }\
 
 #define DST_PTR(p) {\
 	p_dst = malloc(img_height<<2);\
 	p_dst[0] = dst->data.ptr;\
 	for(i=1;i<img_height;i++)\
-		p_dst[i] = p_dst[i-1]+dst->step;\
+		p_dst[i] = p_dst[i-1]+dst->width;\
 }\
 
 #define SRC(x,y) *(p_src[y]+(x))

@@ -37,7 +37,15 @@ int imgSaveBMP_8(ImgMat *src,char *filename)
 		printf("IMG Error:\n\tin imgSaveGrayBMP: Wrong src format\n");
 		return 1;
 	}
+	if((src->memory_valid[0] == 0)&&(src->memory_valid[1] == 0))
+	{
+		printf("IMG Error:\n\tin imgSaveGrayBMP: The src data is invlid\n");
+		return 1;
+	}
 #endif
+	
+	if(src->memory_valid[0] == 0)
+		imgReadMatOCLMemory(src);
 
 	FILE *f;
 	f = fopen(filename,"wb");
@@ -104,7 +112,7 @@ int imgSaveBMP_8(ImgMat *src,char *filename)
 	{
 		for(i=img_height-1;i>=0;i--)
 		{
-			data = src->data.ptr + i*(src->step);			
+			data = src->data.ptr + i*img_width;			
 			fwrite(data,1,img_width,f);				
 		}
 	}
@@ -112,7 +120,7 @@ int imgSaveBMP_8(ImgMat *src,char *filename)
 	{
 		for(i=img_height-1;i>=0;i--)
 		{
-			data = src->data.ptr + i*(src->step);
+			data = src->data.ptr + i*img_width;
 			fwrite(data,1,img_width,f);				
 			fwrite(&data0,1,data_width-img_width,f);
 		}
@@ -124,14 +132,23 @@ int imgSaveBMP_8(ImgMat *src,char *filename)
 }
 	
 int imgSaveBMP_24(ImgMat *src,char *filename)
-{	
+{
+	
 	#ifdef DEBUG
 	if(src->type != TYPE_8UC3)
 	{
 		printf("Img Error:\n\tin imgSaveBMP: Wrong src format\n");
 		return 1;
 	}
+	if((src->memory_valid[0] == 0)&&(src->memory_valid[1] == 0))
+	{
+		printf("IMG Error:\n\tin imgSaveBMP: The src data is invlid\n");
+		return 1;
+	}
 	#endif
+	
+	if(src->memory_valid[0] == 0)
+		imgReadMatOCLMemory(src);
 
 	FILE *f;
 	f = fopen(filename,"wb");
@@ -144,7 +161,7 @@ int imgSaveBMP_24(ImgMat *src,char *filename)
 	}
 	#endif
 
-	// printf("aaaaaaaaaaaaaaaaaaa\n");
+	
 	int img_width;
 	img_width = src->width;
 	
@@ -252,7 +269,15 @@ int imgSaveBMP_32(ImgMat *src,char *filename)
 		printf("Img Error:\n\tin imgSaveBMP: Wrong src format\n");
 		return 1;
 	}
-	#endif
+	if((src->memory_valid[0] == 0)&&(src->memory_valid[1] == 0))
+	{
+		printf("IMG Error:\n\tin imgSaveBMP: The src data is invlid\n");
+		return 1;
+	}
+#endif
+	
+	if(src->memory_valid[0] == 0)
+		imgReadMatOCLMemory(src);
 
 	FILE *f;
 	f = fopen(filename,"wb");
@@ -360,6 +385,7 @@ int imgSaveBMP(ImgMat *src,char *filename)
 
 int imgReadBMP(const char *filename,ImgMat *dst)
 {
+	
 	FILE *f;
 	f = fopen(filename,"rb");
 	if(f == NULL)
@@ -378,6 +404,7 @@ int imgReadBMP(const char *filename,ImgMat *dst)
 		printf("read image error\n");
 		return 1;
 	}
+	
 	
 	struct bmpheader my_bmp;
 	
@@ -496,6 +523,8 @@ int imgReadBMP(const char *filename,ImgMat *dst)
 	}
  
 	fclose(f);
+	
+	dst->memory_valid[0] = 1;
 	
 	return 0;
 

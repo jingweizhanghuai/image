@@ -137,7 +137,7 @@ void imgCrop(ImgMat *src,ImgMat *dst,ImgRect *rect)//Point point1,ImgPoint point
 void Crop(ImgMat *src,ImgMat *dst,ImgRect *rect)
 {
 	#ifdef DEBUG
-	SOURCE_ERROR_CHECK(imgCrop,src1);
+	SOURCE_ERROR_CHECK(imgCrop,src);
 	if((rect->width ==0)||(rect->height ==0))
 	{
 		printf("IMG Error\n\tin imgCrop:size of crop is wrong.\n");

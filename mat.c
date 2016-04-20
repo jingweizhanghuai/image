@@ -1,141 +1,31 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <CL/cl.h>
+#include "err.h"
 #include "type.h"
-/*
-void imgPrintMat(void *mat)
-{
-	ImgMat *src;
-	src = (ImgMat *)mat;
-
-	int channel;
-	channel = ((src->type&0xF8)>>3)+1;
-
-	int n;
-	n = src->height*src->width*channel;
-
-	int type;
-	type = src->type&0x07;
-
-	int i,j;
-
-	if(type==TYPE_8U)
-	{
-		unsigned char *data_point_8u;
-		data_point_8u = (unsigned char *)src->data.ptr;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%3d ",data_point_8u[i+j]);
-			printf(" | ");
-			if(((i+channel)%(src->width*channel))==0)
-				printf("\n");
-		}
-	}
-
-	else if(type==TYPE_8S)
-	{
-		char *data_point_8s;
-		data_point_8s = (char *)src->data.ptr;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%5d ",data_point_8s[i+j]);
-			printf(" | ");
-			if(((i+channel)%(src->width*channel))==0)
-				printf("\n");
-		}
-	}
-
-	else if(type==TYPE_16U)
-	{
-		unsigned short *data_point_16u;
-		data_point_16u = (unsigned short *)src->data.s;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%5d ",data_point_16u[i+j]);
-			printf(" | ");
-			if(((i+channel)%(src->width*channel))==0)
-				printf("\n");
-		}
-	}
-
-	else if(type==TYPE_16S)
-	{
-		short *data_point_16s;
-		data_point_16s = (short *)src->data.s;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%5d ",data_point_16s[i+j]);
-			printf(" | ");
-			if(((i+channel)%(src->width*channel))==0)
-				printf("\n");
-		}
-	}
-
-	else if(type==TYPE_32S)
-	{
-		int *data_point_32s;
-		data_point_32s = (int *)src->data.i;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%5d ",data_point_32s[i+j]);
-			printf(" | ");
-			if(((i+channel)%(src->width*channel))==0)
-				printf("\n");
-		}
-	}
-
-	else if(type==TYPE_32F)
-	{
-		float *data_point_32f;
-		data_point_32f = (float *)src->data.fl;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%5f ",data_point_32f[i+j]);
-			printf(" | ");
-				if(((i+channel)%(src->width*channel))==0)
-			printf("\n");
-		}
-	}
-
-	else if(type==TYPE_64F)
-	{
-		double *data_point_64f;
-		data_point_64f = (double *)src->data.db;
-		for(i=0;i<n;i=i+channel)
-		{
-			for(j=0;j<channel;j++)
-				printf("%5f ",data_point_64f[i+j]);
-			printf(" | ");
-			if(((i+channel)%(src->width*channel))==0)
-				printf("\n");
-		}
-	}
-}
-*/
 
 void imgCreateMatData(ImgMat *p)
 {
-	int n;
-	n=p->height*p->step;
+	if(p->data.ptr !=NULL)
+		return;
 	
+	int cn;
+	cn = (p->type>>3)+1;
+	
+	int n;
+	n=p->size*cn;	
 	n = n+256;
 
 	int *data;
 	data = (int *)malloc(n);
 
-#ifdef DEBUG
+	#ifdef DEBUG
 	if(data ==NULL)
 	{
-		printf("MXU error:\n\tin imgCreateMatData:outof memery space!\n");
+		printf("IMG error:\n\tIn imgCreateMatData: Outof memery space!\n");
 		exit(0);
 	}
-#endif
+	#endif
 
 	*(p->hidinfo + 1) = 1;
 	*(p->hidinfo + 7) =(int)data; 
@@ -148,30 +38,19 @@ void imgCreateMatData(ImgMat *p)
 		mat = (ImgMat *)*(p->hidinfo); 
 		
 		mat->data.i = (int *)data;
-	}
+	}	
 	
+	p->memory[0] = p->data.ptr;
 }
 
 void imgInitializeMatHeader(ImgMat *image,int height,int width,int type)
 {
 	// image->data.i=NULL;
 	image->type=type;
-	image->hdr_refcount=1;
 
 	int cn;
-	cn = ((type&0xF8)>>3)+1;
-	
+	cn = ((type&0xF8)>>3)+1;	
 	image->cn = cn;
-
-	int depth;
-	depth = 1<<(type&0x06);
-
-	image->depth = depth;
-
-	int step;
-	step = cn*depth*width;
-
-	image->step = step;
 	
 	image->height = height;
 
@@ -182,6 +61,18 @@ void imgInitializeMatHeader(ImgMat *image,int height,int width,int type)
 	
 	image->size = size;
 	
+	image->memory[0]=NULL;
+	image->memory[1]=NULL;
+	image->memory[2]=NULL;
+	image->memory[3]=NULL;
+	image->memory[4]=NULL;
+	
+	image->memory_valid[0]=0;
+	image->memory_valid[1]=0;
+	image->memory_valid[2]=0;
+	image->memory_valid[3]=0;
+	image->memory_valid[4]=0;
+	
 	*(image->hidinfo + 1) = 0;
 	*(image->hidinfo + 2) = width;
 	*(image->hidinfo + 3) = height;
@@ -190,7 +81,7 @@ void imgInitializeMatHeader(ImgMat *image,int height,int width,int type)
 	*(image->hidinfo + 6) = height;
 	*(image->hidinfo + 7) = 0;
 	*(image->hidinfo + 8) = cn;
-	*(image->hidinfo + 9) = depth;
+	// *(image->hidinfo + 9) = depth;
 	*(image->hidinfo +10) = size;
 	
 	if(*(image->hidinfo) != (int)image)
@@ -200,12 +91,12 @@ void imgInitializeMatHeader(ImgMat *image,int height,int width,int type)
 		
 		p->data.i = NULL;
 		p->type = type;
-		p->hdr_refcount=1;
-		p->step = step;
+		// p->hdr_refcount=1;
+		// p->step = step;
 		p->height = height;
 		p->width = width;
 		p->cn = cn;
-		p->depth = depth;
+		// p->depth = depth;
 		p->size =size;
 	}		
 }
@@ -236,8 +127,23 @@ ImgMat *imgCreateMatHeader(int height,int width,int type)
 
 void imgMatRedefine(ImgMat *src,int height,int width,int type)
 {	
-	if((src->data.ptr!=NULL)&&(*(src->hidinfo + 1) == 1))
-		free(src->data.ptr);
+	if((src->height == height)&&(src->width == width)&&(src->type == type))
+		return;
+	
+	if(src->data.ptr!=NULL)
+	{
+		int cn_1 = (src->type>>3)+1;
+		int cn_2 = (type>>3)+1;
+		int size_1 = src->size*cn_1;
+		int size_2 = height*width*cn_2;
+	
+		if((size_1 != size_2)&&(*(src->hidinfo + 1) == 1))
+		{
+			free(src->data.ptr);
+			src->data.ptr = NULL;
+			imgReadMatOCLMemory(src);
+		}
+	}
 	
 	imgInitializeMatHeader(src,height,width,type);
 	imgCreateMatData(src);
@@ -245,8 +151,23 @@ void imgMatRedefine(ImgMat *src,int height,int width,int type)
 
 void imgchangeMatHeader(ImgMat *src,int height,int width,int type)
 {
-	if((src->data.ptr != NULL)&&(*(src->hidinfo + 1) == 1))
-		free(src->data.ptr);
+	if((src->height == height)&&(src->width == width)&&(src->type == type))
+		return;
+	
+	if(src->data.ptr!=NULL)
+	{
+		int cn_1 = (src->type>>3)+1;
+		int cn_2 = (type>>3)+1;
+		int size_1 = src->size*cn_1;
+		int size_2 = height*width*cn_2;
+	
+		if((size_1 != size_2)&&(*(src->hidinfo + 1) == 1))
+		{
+			free(src->data.ptr);
+			src->data.ptr = NULL;
+			imgReadMatOCLMemory(src);
+		}
+	}
 	
 	imgInitializeMatHeader(src,height,width,type);
 }
@@ -269,6 +190,9 @@ void imgSpecifyMatData(ImgMat *src,void *data)
 	*(src->hidinfo +7) =(int)data;///////////////////////////////////////////////////////////////////
 
 	src->data.i=(int *)data;/////////////////////////////////////////////////////////////////////////
+	
+	src->memory[0] = data;
+	src->memory_valid[0] = 1;
 	
 	if((int)src != *(src->hidinfo))
 	{
@@ -295,8 +219,8 @@ void imgReleaseMat(ImgMat *src)
 	void *p;
 	p =(void *)*(src->hidinfo);
 	
-	free(src->hidinfo);
-	
+	free(src->hidinfo);	
+	imgReleaseMatOCLMemory(src);	
 	free(p);
 
 	return;
@@ -317,7 +241,7 @@ int imgMatCheck(ImgMat *src)
 	flag = flag && (*(src->hidinfo + 6) == src->height);
 	flag = flag && (*(src->hidinfo + 7) == (int)(src->data.ptr));
 	flag = flag && (*(src->hidinfo + 8) == src->cn);
-	flag = flag && (*(src->hidinfo + 9) == src->depth);
+	// flag = flag && (*(src->hidinfo + 9) == src->depth);
 	flag = flag && (*(src->hidinfo +10) == src->size);
 	
 	if((int)src != *(src->hidinfo))
@@ -545,12 +469,16 @@ void imgCopyMat(ImgMat *src,ImgMat *dst)
 	n = (src->size)*size*cn;
 
 	int *p_src;
-	p_src = src->data.i;
-
 	int *p_dst;
+	
+	p_src = src->data.i;
 	p_dst = dst->data.i;
+	
+	if((p_src!=NULL)&&(src->memory_valid[0]))
+		copy_mat_data(p_src,p_dst,n);
 
-	copy_mat_data(p_src,p_dst,n);
+	if((src->memory[1] != NULL)&&(src->memory_valid[1]))
+		imgCopyMatOCLMemory(src,dst);		
 }
 
 void clean_mat_data(void *p_src,int n)
@@ -646,6 +574,9 @@ void imgCleanMat(ImgMat *src)
 		// img_size = img_size*8;
 			
 	clean_mat_data(p_src,img_size);
+	
+	if(src->memory_valid[1])
+		imgWriteBinaryStream(src);
 }
 
 int imgCompareMat(void *mat1,void *mat2)
@@ -677,11 +608,13 @@ int imgCompareMat(void *mat1,void *mat2)
 		return 1;
 	}
 	
+	int cn = (mat_1->type>>3)+1;
+	
 	int mat_1_n;
-	mat_1_n = (mat_1->height*mat_1->step);
+	mat_1_n = (mat_1->height*mat_1->height*cn);
 	
 	int mat_2_n;
-	mat_2_n = (mat_2->height*mat_2->step);
+	mat_2_n = (mat_2->height*mat_2->height*cn);
 	
 //	result = (mat_1_n == mat_2_n);
 	
@@ -805,16 +738,16 @@ int imgReadBinaryStream(const char *filename,ImgMat *dst,int n)
 	int cn;
 	cn = ((dst->type&0x38)>>3)+1;
 	
-	int img_step;
-	img_step = img_width *cn;
+	// int img_step;
+	// img_step = img_width *cn;
 
 	int img_size;
-	img_size = img_step*img_height;
+	img_size = img_height*img_width*cn;
 
 #ifdef DEBUG
 	int frame_num = 0;
 	
-	fseek(f, 0, SEEK_END);
+	fseek(f,0,SEEK_END);
 	
 	frame_num = (int)((int)ftell(f)/img_size);
 
@@ -834,35 +767,12 @@ int imgReadBinaryStream(const char *filename,ImgMat *dst,int n)
 	int offset;
 	offset = (n-1)*img_size;
 	
-	if((img_width = mat_width)&&(img_height == mat_height))
-	{ 
-		fseek(f,offset,SEEK_SET);
-		fread(dst->data.ptr,1,img_size,f);	
-	}
-	else
-	{
-		unsigned char *p;
-		p = dst->data.ptr;
-		
-		int i,j;
-		
-		for(i=0;i<img_height;i++)
-		{
-			fseek(f,offset,SEEK_SET);
-			fread(p,1,img_width,f);
-			
-			offset = offset + img_step;
-			
-			p = p+img_step;
-			for(j=img_step;j<dst->step;j++)
-			{
-				*p = *(p-cn);
-				p++;
-			}
-		}
-	}
+	fseek(f,offset,SEEK_SET);
+	fread(dst->data.ptr,1,img_size,f);	
 	
 	fclose(f);
+	
+	dst->memory_valid[0] = 1;
 	
 	return 0; 
 }
@@ -870,16 +780,27 @@ int imgReadBinaryStream(const char *filename,ImgMat *dst,int n)
 
 int imgWriteBinaryStream(ImgMat *src,const char *filename)
 {
+	#ifdef DEBUG
+	if((src->memory_valid[0]==0)&&(src->memory_valid[1]==0))
+	{
+		printf("IMG Error:\n\tin imgReadBinaryStream: sourse data is invalid.\n");
+		return 1;
+	}
+	#endif
+	
+	if(src->memory_valid[0]==0)
+		imgReadMatOCLMemory(src);	
+	
 	FILE *f;
 	f = fopen(filename,"rb");
 
-#ifdef DEBUG
+	#ifdef DEBUG
 	if(f==NULL)
 	{
-		printf("QY Error:\n\tin imgReadBinaryStream: file open error!\n");
+		printf("IMG Error:\n\tin imgReadBinaryStream: file open error!\n");
 		return 1;
 	}
-#endif
+	#endif
 
 	fseek(f, 0, SEEK_END);
 	
@@ -901,30 +822,11 @@ int imgWriteBinaryStream(ImgMat *src,const char *filename)
 	img_height = *(src->hidinfo + 6);
 	
 	int i;
-	
-	if((img_width = mat_width)&&(img_height == mat_height))
-	{
+
 		int img_size;
 		img_size = img_width *img_height;
 		
 		fwrite(src->data.ptr,1,img_size,f);
-	}
-	
-	else 
-	{ 
-		unsigned char *p;
-		p = src->data.ptr;
-		
-		for(i=0;i<img_height;i++)
-		{
-			fwrite(p,1,img_width,f);
-			
-			p = p+src->step;
-			pos = pos+img_width;
-			fseek(f,pos,SEEK_SET);
-			
-		}
-	}
  
 	fclose(f);
 	return 0;		

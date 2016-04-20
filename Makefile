@@ -12,7 +12,7 @@ CPPSOURCES = $(wildcard *.cpp)
 SSOURCES = $(wildcard *.s)
 OBJS = $(patsubst %.c,%.o,$(CPPSOURCES)) $(patsubst %.c,%.o,$(CSOURCES)) $(patsubst %.s,%.o,$(SSOURCES))
 
-LIBS = -ljpeg -lpng -lz
+LIBS = -ljpeg -lpng -lz -lopencl
 
 $(OUTPUT):$(OBJS)
 	$(XX) $(XXFLAGS) $(OBJS) $(LIBS) -o $(OUTPUT) 
@@ -23,7 +23,7 @@ $(OUTPUT):$(OBJS)
 	$(XX) $(XXFLAGS) -c $< -o $@
 
 clean:
-	del *.o *.exe
+	rm *.o *.exe
 
 
 

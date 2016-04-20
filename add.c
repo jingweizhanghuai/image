@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "err.h"
 #include "type.h"
 
 #define SATUR(x)	if(x>satur1)\

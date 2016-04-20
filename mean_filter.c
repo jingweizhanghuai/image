@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "ocl_support.h"
 #include "type.h"
 #include "err.h"
 
@@ -8,6 +9,9 @@ void imgMeanFilter3(ImgMat *src,ImgMat *dst)
 	SOURCE_ERROR_CHECK(imgMeanFilter,src);
 	DESTINATION_ERROR_CHECK(imgMeanFilter,dst);
 	#endif
+	
+	if(src->memory_valid[0]==0)
+		imgReadMatOCLMemory(src);
 	
 	int img_width;
 	img_width = src->width;
@@ -77,6 +81,8 @@ void imgMeanFilter3(ImgMat *src,ImgMat *dst)
 		p_src = p_src+img_size;
 		p_dst = p_dst+img_size;
 	}
+	
+	dst->memory_valid[0] = 1;
 }
 
 void imgMeanFilter5(ImgMat *src,ImgMat *dst)
@@ -85,6 +91,11 @@ void imgMeanFilter5(ImgMat *src,ImgMat *dst)
 	SOURCE_ERROR_CHECK(imgMeanFilter,src);
 	DESTINATION_ERROR_CHECK(imgMeanFilter,dst);
 	#endif
+	
+	
+	
+	if(src->memory_valid[0]==0)
+		imgReadMatOCLMemory(src);
 	
 	int img_width;
 	img_width = src->width;
@@ -124,10 +135,10 @@ void imgMeanFilter5(ImgMat *src,ImgMat *dst)
 		src_data0 = src_data2+img_width;
 		src_data3 = src_data0+img_width;
 		src_data4 = src_data3+img_width;
-		dst_data = p_dst;
+		dst_data = p_dst+img_width;
 		
 		for(i=0;i<2*img_width;i++)
-			dst_data[i] = src_data2[i];
+			p_dst[i] = src_data2[i];
 		
 		for(j=2;j<img_height-2;j++)
 		{
@@ -168,6 +179,8 @@ void imgMeanFilter5(ImgMat *src,ImgMat *dst)
 		p_src = p_src+img_size;
 		p_dst = p_dst+img_size;
 	}
+	
+	dst->memory_valid[0] = 1;
 }
 
 #define PTR(mat) {\
@@ -208,6 +221,9 @@ void imgMeanFilter(ImgMat *src,ImgMat *dst,int r)
 		exit(0);
 	}
 	#endif
+	
+	if(src->memory_valid[0]==0)
+		imgReadMatOCLMemory(src);
 	
 	int img_width;
 	img_width = src->width;
@@ -296,6 +312,103 @@ void imgMeanFilter(ImgMat *src,ImgMat *dst,int r)
 	
 	free(psrc);
 	free(pdst);
+	
+	dst->memory_valid[0] = 1;
+}
+
+extern cl_program program_mean_filter;
+extern cl_kernel kernel_mean_filter_r1;
+extern cl_kernel kernel_mean_filter_r2;
+extern cl_kernel kernel_mean_filter_r3;
+extern cl_kernel kernel_mean_filter_rn;
+
+#include "img_opencl/mean_filter.cl.h"
+
+ImgMat *imgMeanFilter_cl(ImgMat *src,ImgMat *dst,int r)
+{	
+	#ifdef DEBUG
+	SOURCE_ERROR_CHECK(imgMeanFilter,src);
+	DESTINATION_ERROR_CHECK(imgMeanFilter,dst);
+	if(r<0)
+	{
+		printf("IMG Error:\n\tin imgMeanFilter.\n");
+		exit(0);
+	}
+	#endif
+	
+	if(src->memory_valid[1] == 0)
+		imgWriteMatOCLMemory(src);
+	
+	int img_width;
+	img_width = src->width;
+	
+	int img_height;
+	img_height = src->height;
+	
+	if((dst->height != img_height)||(dst->width != img_width)||(dst->type != src->type))
+		imgMatRedefine(dst,img_height,img_width,src->type);
+	
+	if(dst->memory[1] == NULL)
+		imgCreateMatOCLMemory(dst);
+	
+	cl_kernel *kernel_ptr;
+	char *kernel_name;
+	if(r==1)
+	{		
+		kernel_ptr = &kernel_mean_filter_r1;
+		kernel_name = "mean_filter_r1";
+	}
+	else if(r==2)
+	{
+		kernel_ptr = &kernel_mean_filter_r2;
+		kernel_name = "mean_filter_r2";
+	}
+	else if(r==3)
+	{
+		kernel_ptr = &kernel_mean_filter_r3;
+		kernel_name = "mean_filter_r3";
+	}
+	else
+	{
+		kernel_ptr = &kernel_mean_filter_rn;
+		kernel_name = "mean_filter_rn";
+	}
+		
+	
+	// TIME_START;
+	if((*kernel_ptr == NULL)||(program_mean_filter == NULL))
+		imgOCLBuildKernel(kernel_source,kernel_name,&program_mean_filter,kernel_ptr);
+	// TIME_STOP;
+	
+	int cn;
+	cn = ((src->type)>>3)+1;	
+
+	int n;
+	n=src->size*cn+16;
+	
+	cl_int ret;
+	// TIME_START;
+	ret = clSetKernelArg(*kernel_ptr,0,sizeof(cl_mem),src->memory[1]);
+	ret = ret | clSetKernelArg(*kernel_ptr,1,sizeof(cl_mem),dst->memory[1]);
+	ret = ret | clSetKernelArg(*kernel_ptr,2,4,&img_width);
+	ret = ret | clSetKernelArg(*kernel_ptr,3,4,&img_height);	
+	ret = ret | clSetKernelArg(*kernel_ptr,4,4,&r);
+	
+	#ifdef DEBUG
+	if(ret != CL_SUCCESS)
+	{
+		printf("IMG Error:\n\tin imgMeanFilter: Set arguments error with opencl error %d.\n",ret);
+		exit(0);
+	}
+	#endif
+	// TIME_STOP;	
+	
+	// TIME_START;
+	RUN_DEVICE(*kernel_ptr,img_width,img_height,cn);
+	// TIME_STOP;
+
+	dst->memory_valid[0] = 0;
+	dst->memory_valid[1] = 1;
 }
 
 ImgMat *imgCreateMat(int height,int width,char type);

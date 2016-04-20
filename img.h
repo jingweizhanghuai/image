@@ -1,3 +1,8 @@
+#include "imgocl.h"
+#include "imgtime.h"
+
+
+
 const int aa = 0xFFFFFFFF;
 
 #define MAT_ADDRESS(mat) (ImgMat *)((int)mat&aa)

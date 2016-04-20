@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "err.h"
 #include "type.h"
 
 #define PTR_1(mat) {\
@@ -51,7 +52,7 @@ void imgMist_1(ImgMat *src,ImgMat *dst,int n)
 	#ifdef DEBUG
 	SOURCE_ERROR_CHECK(imgMist,src);
 	DESTINATION_ERROR_CHECK(imgMist,dst);
-	if(r<0)
+	if(n<0)
 	{
 		printf("IMG Error:\n\tin imgMist.\n");
 		exit(0);
@@ -171,7 +172,7 @@ void imgMist_3(ImgMat *src,ImgMat *dst,int n)
 	#ifdef DEBUG
 	SOURCE_ERROR_CHECK(imgMist,src);
 	DESTINATION_ERROR_CHECK(imgMist,dst);
-	if(r<0)
+	if(n<0)
 	{
 		printf("IMG Error:\n\tin imgMist.\n");
 		exit(0);
@@ -318,7 +319,7 @@ void imgMist_4(ImgMat *src,ImgMat *dst,int n)
 	#ifdef DEBUG
 	SOURCE_ERROR_CHECK(imgMist,src);
 	DESTINATION_ERROR_CHECK(imgMist,dst);
-	if(r<0)
+	if(n<0)
 	{
 		printf("IMG Error:\n\tin imgMist.\n");
 		exit(0);
