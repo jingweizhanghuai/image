@@ -102,6 +102,12 @@ void imgFill(ImgMat *src,ImgMat *dst,ImgLocate *start_locate,ImgColor *replace_c
 #define DEF_FILL_THRESH(x) ((#x[0])?INT_VALUE(x):20)
 #define imgFill(src,dst,start_locate,replace_color,thresh) Fill(src,DEF_POINTER(dst),DEF_POINTER(start_locate),DEF_POINTER(replace_color),DEF_FILL_THRESH(thresh))
 
+void imgLens(ImgMat *src,ImgMat *dst,ImgPoint *center,float m0,int r1,int r2);
+void Lens(ImgMat *src,ImgMat *dst,ImgPoint *center,float m0,int r1,int r2);
+#define DEF_LENS_R1(x) ((#x[0])?INT_VALUE(x):20)
+#define DEF_LENS_R2(x) ((#x[0])?INT_VALUE(x):40)
+#define imgLens(src,dst,center,m0,r1,r2) Lens(src,DEF_POINTER(dst),DEF_POINTER(center),m0,DEF_LENS_R1(r1),DEF_LENS_R2(r2))
+
 void imgBlur(ImgMat *src,ImgMat *dst,int r);
 void imgMist(ImgMat *src,ImgMat *dst,int r);
 

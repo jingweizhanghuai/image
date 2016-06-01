@@ -13,6 +13,9 @@ void imgColorToGray(ImgMat *src,ImgMat *dst)
 	if(dst->data.ptr == NULL)
 		imgCreateMatData(dst);
 	
+	if(src->memory_valid[0]==0)
+		imgReadMatOCLMemory(src);
+	
 	int cn;
 	cn = ((src->type&0xF8)>>3)+1;
 	
@@ -45,6 +48,9 @@ void imgColorToGray(ImgMat *src,ImgMat *dst)
 		p_src1 = p_src1+1;
 		p_src2 = p_src2+1;
 	}
+	
+	dst->memory_valid[0] = 1;
+	dst->memory_valid[1] = 0;
 }
 
 void ColorToGray(ImgMat *src,ImgMat *dst) 

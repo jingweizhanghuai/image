@@ -20,7 +20,15 @@ int imgSaveJPG_24(ImgMat *src,char *filename)
 		printf("Img Error:\n\tin imgSaveJPG: Wrong src format\n");
 		return 1;
 	}
-	#endif
+	if((src->memory_valid[0] == 0)&&(src->memory_valid[1] == 0))
+	{
+		printf("IMG Error:\n\tin imgSaveJPG: The src data is invlid\n");
+		return 1;
+	}
+#endif
+	
+	if(src->memory_valid[0] == 0)
+		imgReadMatOCLMemory(src);
 
 	FILE *f;
 	f = fopen(filename,"wb");
@@ -104,7 +112,15 @@ int imgSaveJPG_8(ImgMat *src,char *filename)
 		printf("Img Error:\n\tin imgSaveJPG: Wrong src format\n");
 		return 1;
 	}
-	#endif
+	if((src->memory_valid[0] == 0)&&(src->memory_valid[1] == 0))
+	{
+		printf("IMG Error:\n\tin imgSaveJPG: The src data is invlid\n");
+		return 1;
+	}
+#endif
+	
+	if(src->memory_valid[0] == 0)
+		imgReadMatOCLMemory(src);
 	
 	int cn;
 	cn = ((src->type)>>3)+1;
@@ -270,6 +286,8 @@ int imgReadJPG(const char *filename,ImgMat *dst)
 	}
 	jpeg_finish_decompress(&cinfo);
 	jpeg_destroy_decompress(&cinfo);
+	
+	dst->memory_valid[0] = 1;
 	
 	free(data_buff);
 	fclose(f);

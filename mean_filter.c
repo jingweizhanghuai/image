@@ -327,13 +327,14 @@ extern cl_kernel kernel_mean_filter_rn;
 ImgMat *imgMeanFilter_cl(ImgMat *src,ImgMat *dst,int r)
 {	
 	#ifdef DEBUG
-	SOURCE_ERROR_CHECK(imgMeanFilter,src);
-	DESTINATION_ERROR_CHECK(imgMeanFilter,dst);
 	if(r<0)
 	{
 		printf("IMG Error:\n\tin imgMeanFilter.\n");
 		exit(0);
 	}
+	SOURCE_ERROR_CHECK(imgMeanFilter,src);
+	DESTINATION_ERROR_CHECK(imgMeanFilter,dst);
+	
 	#endif
 	
 	if(src->memory_valid[1] == 0)
@@ -381,10 +382,7 @@ ImgMat *imgMeanFilter_cl(ImgMat *src,ImgMat *dst,int r)
 	// TIME_STOP;
 	
 	int cn;
-	cn = ((src->type)>>3)+1;	
-
-	int n;
-	n=src->size*cn+16;
+	cn = ((src->type)>>3)+1;
 	
 	cl_int ret;
 	// TIME_START;

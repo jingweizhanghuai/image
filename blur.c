@@ -496,6 +496,8 @@ void imgBlur5(ImgMat *src,ImgMat *dst,int r)
 	
 	free(p_src);
 	free(p_dst);
+	dst->memory_valid[0] = 1;
+	dst->memory_valid[1] = 0;
 }
 		
 
@@ -753,6 +755,8 @@ void imgBlur6(ImgMat *src,ImgMat *dst)
 	
 	free(p_src);
 	free(p_dst);
+	dst->memory_valid[0] = 1;
+	dst->memory_valid[1] = 0;
 }
 
 

@@ -24,6 +24,18 @@ cl_kernel kernel_mean_filter_r1 = NULL;
 cl_kernel kernel_mean_filter_r2 = NULL;
 cl_kernel kernel_mean_filter_r3 = NULL;
 cl_kernel kernel_mean_filter_rn = NULL;
+
+cl_program program_affine = NULL;
+cl_kernel kernel_affine_cn1 = NULL;
+cl_kernel kernel_affine_cn2 = NULL;
+cl_kernel kernel_affine_cn3 = NULL;
+cl_kernel kernel_affine_cn4 = NULL;
+
+cl_program program_absdiff = NULL;
+cl_kernel kernel_absdiff_8u = NULL;
+cl_kernel kernel_absdiff_8s = NULL;
+
+
 #define FREE_KERNEL_MEAN_FILTER {\
 	if(program_mean_filter !=NULL)\
 	{\

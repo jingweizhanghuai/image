@@ -14,6 +14,7 @@ OBJS = $(patsubst %.c,%.o,$(CPPSOURCES)) $(patsubst %.c,%.o,$(CSOURCES)) $(patsu
 
 LIBS = -ljpeg -lpng -lz -lopencl
 
+
 $(OUTPUT):$(OBJS)
 	$(XX) $(XXFLAGS) $(OBJS) $(LIBS) -o $(OUTPUT) 
 
@@ -24,7 +25,5 @@ $(OUTPUT):$(OBJS)
 
 clean:
 	rm *.o *.exe
-
-
 
 

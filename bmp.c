@@ -377,7 +377,7 @@ int imgSaveBMP(ImgMat *src,char *filename)
 	#ifdef DEBUG
 	else 
 	{
-		printf("Img Error:\n\tin imgSaveBMP.\n");
+		printf("Img Error:\n\tin imgSaveBMP: the type is %d\n",src->type);
 		return 1;
 	}
 	#endif

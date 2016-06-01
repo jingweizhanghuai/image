@@ -338,6 +338,9 @@ void imgPerspective(ImgMat *src,ImgPoint *ps,ImgMat *dst,ImgPoint *pd)
 	}	
 	PTR_FREE(src);
 	PTR_FREE(dst);
+	
+	dst->memory_valid[0] = 1;
+	dst->memory_valid[1] = 0;
 }
 
 ImgMat *imgCreateMat(int height,int width,char type);

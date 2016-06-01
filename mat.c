@@ -9,11 +9,15 @@ void imgCreateMatData(ImgMat *p)
 	if(p->data.ptr !=NULL)
 		return;
 	
+	int depth;
+	depth = ((p->type)&0x07)/2;
+	depth = 1<<depth;
+	
 	int cn;
-	cn = (p->type>>3)+1;
+	cn = (((p->type)&0xF8)>>3)+1;
 	
 	int n;
-	n=p->size*cn;	
+	n=p->size*cn*depth;
 	n = n+256;
 
 	int *data;

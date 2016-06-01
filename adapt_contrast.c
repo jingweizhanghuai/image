@@ -83,12 +83,6 @@ void imgAdaptContrast(ImgMat *src,ImgMat *dst,int llv,int ulv,int r)
 		else if(data>ulv)
 		{
 			k = (float)ulv/(float)data;
-			if(i==300)
-			{
-				printf("ulv is %d\n",ulv);
-				printf("k is %f\n",k);
-				printf("data is %d\n",data);
-			}
 			k = (k<0.4)?0.4:k;
 			
 			data = (int)(((float)data)*k);
@@ -127,12 +121,6 @@ void imgAdaptContrast(ImgMat *src,ImgMat *dst,int llv,int ulv,int r)
 			else if(data>ulv)
 			{
 				k = (float)ulv/(float)data;
-				if(i==300)
-				{
-					printf("ulv is %d\n",ulv);
-					printf("k is %f\n",k);
-					printf("data is %d\n",data);
-				}
 				k = (k<0.4)?0.4:k;
 				
 				data = (int)(((float)data)*k);
@@ -163,12 +151,6 @@ void imgAdaptContrast(ImgMat *src,ImgMat *dst,int llv,int ulv,int r)
 			{
 				k = (float)llv/data_mean;
 				k = (k>2.5)?2.5:k;
-				if((i==210)&&(j==198))
-				{
-					printf("data_mean is %f\n",data_mean);
-					printf("k is %f\n",k);
-					printf("data is %d\n",data);
-				}
 				data = (int)(((float)data)*k);
 				if(data>ulv)
 					data = ulv;				

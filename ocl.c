@@ -99,7 +99,7 @@ void imgOCLBuildKernel(char *kernel_source,const char *kernel_name,cl_program *p
 	if(*kernel !=NULL)
 		return;
 	
-	// printf("aaaaaaaaaaaaaaaaaaa\n");
+	printf("aaaaaaaaaaaaaaaaaaa\n");
 	cl_int ret;
 	
 	if(*program ==NULL)
@@ -157,7 +157,7 @@ void imgOCLBuildKernel(char *kernel_source,const char *kernel_name,cl_program *p
 	*kernel = clCreateKernel(*program,kernel_name,&ret);
     if(*kernel == NULL)
     {
-        printf("Kernel failed to create!\n");
+        printf("IMG Error:\n\tIn imgOCLBuildKernel: Kernel \"%s\" failed to create with OpenCL error %d.\n",kernel_name,ret);
         RELEASE_CL;
 		exit(0);
     }
