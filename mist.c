@@ -167,6 +167,7 @@ void imgMist_1(ImgMat *src,ImgMat *dst,int n)
 	free(p0dst);
 }
 
+
 void imgMist_3(ImgMat *src,ImgMat *dst,int n)
 {
 	#ifdef DEBUG
