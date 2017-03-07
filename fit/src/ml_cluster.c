@@ -73,6 +73,8 @@ void maMLKmeanCluster(MASample *DataIn,int label_num)
 	int *label;
 	int feature_num,sample_num;
 	
+	
+	
 	maException(INVALID_SAMPLE(DataIn),"invalid input sample",EXIT);
 	
 	feature = DataIn->feature;
@@ -87,6 +89,8 @@ void maMLKmeanCluster(MASample *DataIn,int label_num)
 		for(i=0;i<feature_num;i++)
 			center[j][i] = feature[j][i];
 	}
+	
+	
 	
 	n = 0;
 	flag = 1;
@@ -135,6 +139,7 @@ void maMLKmeanCluster(MASample *DataIn,int label_num)
 		}
 		
 		n = n+1;
+		// printf("n is %d\n",n);
 		if(n>=100)
 			break;
 	}

@@ -3,7 +3,7 @@
 #include <string.h>
 #include "exception.h"
 
-void IMP_MATH_LinearFitSGD(float *XIn,float *YIn,int N,float *A)
+void maMLLinearFitSGD(float *XIn,float *YIn,int N,float *A)
 {
 	int i;
 	int n;
@@ -78,7 +78,7 @@ void IMP_MATH_LinearFitSGD(float *XIn,float *YIn,int N,float *A)
 	// printf("n is %d\n",n);
 }
 
-void IMP_MATH_ParabolaFitSGD(float *XIn,float *YIn,int N,float *A)
+void maMLParabolaFitSGD(float *XIn,float *YIn,int N,float *A)
 {
 	int i;
 	int n;
