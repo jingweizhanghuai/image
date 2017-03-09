@@ -29,29 +29,19 @@ void maMathFootPoint(float **plane,int plane_num,int dim_num,float *locate)
 	for(k=0;k<plane_num;k++)
 		memcpy(k1+k*(dim_num+1),plane[k],(dim_num+1)*sizeof(float));
 	
-	for(k=0;k<vector_num;k++)
+	
+	for(i=0;i<plane_num;i++)
 	{
-		
-		// K2(0,0) = PLANE[0][1];
-		// K2(0,1) = PLANE[0][2];
-		// K2(0,2) = PLANE[0][3]+PLANE[0][k];
-		// K2(1,0) = PLANE[1][1];
-		// K2(1,1) = PLANE[1][2];
-		// K2(1,2) = PLANE[1][3];
-		
-		// maMathLinearEquation(k2,v1,plane_num);
-		
-		for(i=0;i<plane_num;i++)
-		{
-			for(j=0;j<plane_num;j++)
-			{			
-				K2(i,j) = PLANE(i,j+vector_num);
-			}
+		for(j=0;j<plane_num;j++)
+		{			
 			K2(i,j) = PLANE(i,j+vector_num);
 		}
-		
-		maMathLinearEquation(k2,v1+vector_num,plane_num);
-		
+		K2(i,j) = PLANE(i,j+vector_num);
+	}		
+	maMathLinearEquation(k2,v1+vector_num,plane_num);
+	
+	for(k=0;k<vector_num;k++)
+	{		
 		for(i=0;i<plane_num;i++)
 		{
 			for(j=0;j<plane_num;j++)
@@ -72,19 +62,19 @@ void maMathFootPoint(float **plane,int plane_num,int dim_num,float *locate)
 		// return;
 		
 		for(j=0;j<vector_num;j++)
-		{
-			if(j==k)
-				K1(k+plane_num,k) = 1.0;
-			else
-				K1(k+plane_num,k) = 0.0;
-		}
+			K1(k+plane_num,j) = 0.0;
+		K1((k+plane_num),k) = 1.0;
 		
 		for(j=vector_num;j<dim_num;j++)
 			K1(k+plane_num,j) = v2[j]-v1[j];
-		
 		K1(k+plane_num,j) = 0.0;
 		
 	}
+	
+	// int n;
+	// for(n=0;n<12;n++)
+		// printf("%f,",k1[n]);
+	// printf("\n");
 	
 	maMathLinearEquation(k1,locate,dim_num);
 	
