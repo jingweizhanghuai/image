@@ -221,7 +221,7 @@ int main5()
 	maReleaseSample(data);
 }
 
-int main()
+int main6()
 {
 	float data[3][4];
 	float A[3];
@@ -235,8 +235,21 @@ int main()
 	printf("%f,%f,%f\n",A[0],A[1],A[2]);
 }
 
+int main()
+{
+	float *plane[2];
+	float locate[3];
 	
+	plane[0] = (float *)malloc(4*sizeof(float));
+	plane[1] = (float *)malloc(4*sizeof(float));
 	
+	plane[0][0] = 2.0;	plane[0][1] = -3.0;	plane[0][2] = 3.0;	plane[0][3] = 6.0;
+	plane[1][0] = 1.0;	plane[1][1] = 2.0;	plane[1][2] = 3.0;	plane[1][3] = 4.0;
+	
+	maMathFootPoint(plane,1,3,locate);
+	
+	printf("%f,%f,%f\n",locate[0],locate[1],locate[2]);
+}
 	
 	
 	
