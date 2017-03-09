@@ -171,7 +171,7 @@ int main3()
 
 MASample *maCreateSample(int sample_num,int feature_num);
 
-int main()
+int main4()
 {
 	int i;
 	FILE *f;
@@ -220,8 +220,20 @@ int main5()
 	
 	maReleaseSample(data);
 }
+
+int main()
+{
+	float data[3][4];
+	float A[3];
+
+	data[0][0] = 2.0;	data[0][1] = -3.0;	data[0][2] = 3.0;	data[0][3] = 6.0;
+	data[1][0] = 1.0;	data[1][1] = 2.0;	data[1][2] = 3.0;	data[1][3] = 4.0;
+	data[2][0] = 15.0;	data[2][1] = 3.0;	data[2][2] = -7.0;	data[2][3] = 0.0;
 	
-	
+	maMathLinearEquation(data,A,3);
+
+	printf("%f,%f,%f\n",A[0],A[1],A[2]);
+}
 
 	
 	
